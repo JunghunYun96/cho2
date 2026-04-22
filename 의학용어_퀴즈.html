@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>의학용어 퀴즈</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #21262d;
+    --accent: #58a6ff;
+    --accent2: #79c0ff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --correct: #3fb950;
+    --wrong: #f85149;
+    --tag: #1f6feb;
+    --safe-top: env(safe-area-inset-top,0px);
+    --safe-bottom: env(safe-area-inset-bottom,0px);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; }
+
+  /* HEADER */
+  .header {
+    flex-shrink:0;
+    background:linear-gradient(160deg,#0d1f3c 0%,#0d1117 100%);
+    padding:calc(var(--safe-top) + 14px) 16px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  .header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .header h1 { font-size:1.1rem; font-weight:900; }
+  .header h1 span { color:var(--accent2); }
+  .score-pill { background:var(--card); border:1px solid var(--border); border-radius:99px; padding:4px 12px; font-size:0.78rem; color:var(--correct); font-weight:700; }
+  .progress-wrap { display:flex; align-items:center; gap:8px; }
+  .progress-bar-bg { flex:1; height:5px; background:var(--border); border-radius:99px; }
+  .progress-bar { height:5px; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:99px; transition:width 0.35s; width:0%; }
+  .progress-label { font-size:0.7rem; color:var(--muted); white-space:nowrap; min-width:48px; text-align:right; }
+
+  /* TABS */
+  .tabs-wrap { flex-shrink:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; display:flex; gap:6px; padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--border); }
+  .tabs-wrap::-webkit-scrollbar { display:none; }
+  .tab-btn { flex-shrink:0; padding:6px 14px; border-radius:99px; border:1px solid var(--border); background:var(--card); color:var(--muted); font-size:0.73rem; font-family:inherit; font-weight:500; cursor:pointer; white-space:nowrap; }
+  .tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+
+  /* SCROLL AREA */
+  .scroll-area { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px calc(var(--safe-bottom) + 76px); }
+
+  /* QUIZ MODE TOGGLE */
+  .mode-toggle { display:flex; gap:6px; padding:0 14px 12px; }
+  .mode-btn { flex:1; padding:8px; border-radius:10px; border:1.5px solid var(--border); background:var(--card); color:var(--muted); font-size:0.78rem; font-family:inherit; font-weight:500; cursor:pointer; transition:all 0.15s; }
+  .mode-btn.active { border-color:var(--tag); background:rgba(31,111,235,0.15); color:var(--accent2); font-weight:700; }
+
+  /* Q CARD */
+  .q-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:18px 16px 16px; margin-bottom:12px; }
+  .q-meta { font-size:0.67rem; font-weight:700; color:var(--accent); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+  .q-tag { background:rgba(88,166,255,0.12); color:var(--accent); border-radius:4px; padding:1px 6px; font-size:0.64rem; }
+  .q-text { font-size:0.93rem; font-weight:500; line-height:1.65; margin-bottom:14px; word-break:keep-all; }
+  .q-hint { font-size:0.75rem; color:var(--muted); margin-bottom:12px; font-style:italic; }
+  .options { display:flex; flex-direction:column; gap:7px; }
+
+  /* TYPE QUIZ: input */
+  .type-wrap { display:flex; gap:8px; margin-top:4px; }
+  .type-input { flex:1; padding:11px 13px; border-radius:11px; border:1.5px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:0.9rem; font-family:inherit; outline:none; }
+  .type-input:focus { border-color:var(--accent); }
+  .type-btn { padding:11px 16px; border-radius:11px; background:var(--accent); color:#fff; border:none; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .type-btn:active { opacity:0.8; }
+
+  .opt-btn { display:flex; align-items:center; gap:10px; width:100%; padding:12px 13px; border-radius:11px; border:1.5px solid var(--border); background:rgba(255,255,255,0.03); color:var(--text); font-size:0.87rem; font-family:inherit; font-weight:400; text-align:left; cursor:pointer; line-height:1.5; word-break:keep-all; }
+  .opt-btn:active:not(:disabled) { background:#1e3a5f; border-color:var(--accent); }
+  .badge { flex-shrink:0; width:28px; height:28px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
+  .opt-btn.correct { border-color:var(--correct); background:rgba(63,185,80,0.1); }
+  .opt-btn.correct .badge { background:var(--correct); color:#fff; }
+  .opt-btn.wrong { border-color:var(--wrong); background:rgba(248,81,73,0.1); }
+  .opt-btn.wrong .badge { background:var(--wrong); color:#fff; }
+  .opt-btn:disabled { cursor:default; }
+
+  .exp-box { display:none; margin-top:11px; padding:10px 13px; border-radius:10px; background:rgba(88,166,255,0.07); border-left:3px solid var(--accent); font-size:0.8rem; color:#79c0ff; line-height:1.65; word-break:keep-all; }
+  .exp-box.show { display:block; animation:fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+  /* BOTTOM BAR */
+  .bottom-bar { position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); padding:10px 16px calc(var(--safe-bottom) + 10px); display:flex; gap:8px; z-index:200; }
+  .btn-result { flex:1; padding:14px; border-radius:12px; background:var(--accent); color:#fff; border:none; font-family:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; }
+  .btn-result:active { opacity:0.8; }
+  .btn-retry { padding:14px 16px; border-radius:12px; background:transparent; color:var(--muted); border:1.5px solid var(--border); font-family:inherit; font-size:0.85rem; font-weight:500; cursor:pointer; white-space:nowrap; }
+
+  /* SCORE */
+  .score-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px 120px; text-align:center; min-height:60vh; }
+  .score-ring { width:130px; height:130px; border-radius:50%; border:4px solid var(--accent); display:flex; flex-direction:column; align-items:center; justify-content:center; margin-bottom:22px; background:linear-gradient(135deg,#0d1f3c,#0d1117); box-shadow:0 0 40px rgba(88,166,255,0.2); }
+  .score-big { font-size:2.2rem; font-weight:900; color:var(--accent2); line-height:1; }
+  .score-of { font-size:0.7rem; color:var(--muted); margin-top:3px; }
+  .score-emoji { font-size:1.8rem; margin-bottom:6px; }
+  .score-title { font-size:1.1rem; font-weight:700; margin-bottom:6px; }
+  .score-sub { font-size:0.82rem; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>🩺 의학용어 <span>퀴즈</span></h1>
+    <div class="score-pill">✓ <span id="correctCount">0</span>개</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar-bg"><div class="progress-bar" id="pbar"></div></div>
+    <div class="progress-label" id="plabel">0 / 0</div>
+  </div>
+</div>
+
+<div class="tabs-wrap" id="tabsWrap"></div>
+
+<div style="flex-shrink:0; background:var(--bg); border-bottom:1px solid var(--border);">
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="modeOX" onclick="setMode('choice')">🔤 객관식</button>
+    <button class="mode-btn" id="modeType" onclick="setMode('type')">✏️ 단어 입력</button>
+  </div>
+</div>
+
+<div class="scroll-area" id="scrollArea"></div>
+
+<div class="bottom-bar">
+  <button class="btn-retry" onclick="retry()">↺ 다시</button>
+  <button class="btn-result" onclick="showScore()">결과 보기 →</button>
+</div>
+
+<script>
+const allData = {
+  "Ch.1 접미사·접두사": {
+    questions: [
+      // 접미사 의미
+      { q:"-itis 의 의미는?", opts:["염증","통증","종양","절개"], ans:0, exp:"-itis = 염증 (예: Appendicitis 충수염, Arthritis 관절염)", tag:"접미사" },
+      { q:"-ectomy 의 의미는?", opts:["절개","절제/제거","시각화","성형"], ans:1, exp:"-ectomy = 절제/제거 (예: Appendectomy 충수절제술, Gastrectomy 위절제술)", tag:"접미사" },
+      { q:"-oma 의 의미는?", opts:["염증","통증","종양·살점","절개"], ans:2, exp:"-oma = 종양·살점 (예: Sarcoma 육종, Fibroma 섬유종)", tag:"접미사" },
+      { q:"-pathy 의 의미는?", opts:["질병·장애","절개","통증","세포"], ans:0, exp:"-pathy = 질병·장애 (예: Arthropathy 관절병증, Neuropathy 신경병증)", tag:"접미사" },
+      { q:"-plasty 의 의미는?", opts:["절제","파괴","성형·재건술","영사법"], ans:2, exp:"-plasty = 성형·재건술 (예: Rhinoplasty 코성형, Arthroplasty 관절성형술)", tag:"접미사" },
+      { q:"-scopy 의 의미는?", opts:["내시경으로 살피는 것","절제술","이식","X선 촬영"], ans:0, exp:"-scopy = 내시경 검사 (예: Arthroscopy 관절경검사, Bronchoscopy 기관지경검사)", tag:"접미사" },
+      { q:"-algia 의 의미는?", opts:["염증","통증","종양","마비"], ans:1, exp:"-algia = 통증 (예: Neuralgia 신경통, Arthralgia 관절통)", tag:"접미사" },
+      { q:"-lysis 의 의미는?", opts:["결합","파괴·분리","성장","절개"], ans:1, exp:"-lysis = 파괴·분리 (예: Hemolysis 용혈, Paralysis 마비)", tag:"접미사" },
+      { q:"-osis 의 의미는?", opts:["수술","상태·과정 (비정상적 상태)","통증","세포"], ans:1, exp:"-osis = 비정상적인 상태·과정 (예: Fibrosis 섬유증, Cyanosis 청색증)", tag:"접미사" },
+      { q:"-megaly 의 의미는?", opts:["감소","축소","비대","절제"], ans:2, exp:"-megaly = 장기가 커진 상태 (예: Cardiomegaly 심장비대, Splenomegaly 비장비대)", tag:"접미사" },
+      { q:"-dynia 의 의미는?", opts:["염증","통증","출혈","마비"], ans:1, exp:"-dynia = 통증 (-algia와 같은 의미, 예: Pleurodynia 흉막통)", tag:"접미사" },
+      { q:"-rrhea 의 의미는?", opts:["파열","흐름·분비","통증","확장"], ans:1, exp:"-rrhea = 흐름·분비 (예: Diarrhea 설사, Rhinorrhea 콧물)", tag:"접미사" },
+      { q:"-penia 의 의미는?", opts:["증가","감소·결핍","부종","경화"], ans:1, exp:"-penia = 감소·결핍 (예: Leukopenia 백혈구감소증, Thrombocytopenia 혈소판감소증)", tag:"접미사" },
+      { q:"-stasis 의 의미는?", opts:["유동","정지·억제","증가","절제"], ans:1, exp:"-stasis = 정지·억제 (예: Hemostasis 지혈, Metastasis 전이)", tag:"접미사" },
+      { q:"-poiesis 의 의미는?", opts:["조혈·생성","파괴","분리","절제"], ans:0, exp:"-poiesis = 조혈·생성 (예: Hematopoiesis 조혈, Erythropoiesis 적혈구생성)", tag:"접미사" },
+      // 접두사 의미
+      { q:"접두사 'intra-' 의 의미는?", opts:["바깥","사이","안에(내부)","위에"], ans:2, exp:"intra- = 안에 (예: Intravenous 정맥내, Intracranial 두개내)", tag:"접두사" },
+      { q:"접두사 'extra-' 의 의미는?", opts:["안에","바깥(외부)","아래","사이에"], ans:1, exp:"extra- = 바깥 (예: Extracellular 세포외, Extrauterine 자궁외)", tag:"접두사" },
+      { q:"접두사 'hyper-' 의 의미는?", opts:["정상이하","정상이상(과다)","없음","사이"], ans:1, exp:"hyper- = 과다·정상 이상 (예: Hypertension 고혈압, Hyperglycemia 고혈당)", tag:"접두사" },
+      { q:"접두사 'hypo-' 의 의미는?", opts:["과다","정상이하(부족)","양쪽","위에"], ans:1, exp:"hypo- = 부족·정상 이하 (예: Hypoglycemia 저혈당, Hypothyroidism 갑상선기능저하증)", tag:"접두사" },
+      { q:"접두사 'brady-' 의 의미는?", opts:["빠른","느린","없는","많은"], ans:1, exp:"brady- = 느린 (예: Bradycardia 서맥, Bradypnea 서호흡)", tag:"접두사" },
+      { q:"접두사 'tachy-' 의 의미는?", opts:["느린","빠른","적은","위의"], ans:1, exp:"tachy- = 빠른 (예: Tachycardia 빈맥, Tachypnea 빈호흡)", tag:"접두사" },
+      { q:"접두사 'sub-' 의 의미는?", opts:["위에","아래(아래에)","바깥","반대"], ans:1, exp:"sub- = 아래에 (예: Subcutaneous 피하, Sublingual 설하)", tag:"접두사" },
+      { q:"접두사 'peri-' 의 의미는?", opts:["안에","주위에","위에","사이에"], ans:1, exp:"peri- = 주위에 (예: Pericardium 심장막, Periosteum 골막)", tag:"접두사" },
+    ]
+  },
+  "Ch.2 방향·해부": {
+    questions: [
+      { q:"Superior / Cranial 의 한국어 의미는?", opts:["아래쪽/꼬리쪽","위쪽/머리쪽","앞쪽","뒤쪽"], ans:1, exp:"Superior/Cranial = 위쪽·머리쪽. 반대는 Inferior/Caudal(아래·꼬리쪽)", tag:"방향" },
+      { q:"Anterior / Ventral 의 한국어 의미는?", opts:["앞쪽/배쪽","뒤쪽/등쪽","안쪽","바깥쪽"], ans:0, exp:"Anterior/Ventral = 앞쪽·배쪽. 반대는 Posterior/Dorsal(뒤쪽·등쪽)", tag:"방향" },
+      { q:"Medial 의 한국어 의미는?", opts:["가쪽(바깥쪽)","안쪽(정중선쪽)","얕은","깊은"], ans:1, exp:"Medial = 안쪽 (정중선 방향). 반대는 Lateral(가쪽)", tag:"방향" },
+      { q:"Proximal 의 한국어 의미는?", opts:["먼쪽","몸통에 가까운쪽","얕은","깊은"], ans:1, exp:"Proximal = 몸통에 가까운쪽. 반대는 Distal(먼쪽)", tag:"방향" },
+      { q:"Supine 자세는?", opts:["엎드린 자세(복와위)","누운 자세(앙와위)","서있는 자세","옆으로 누운 자세"], ans:1, exp:"Supine = 바로 누운 자세(앙와위). 반대는 Prone(엎드린 자세, 복와위)", tag:"자세" },
+      { q:"Right Upper Quadrant (RUQ)에 위치하는 주요 장기는?", opts:["비장(Spleen)","간(Liver)·담낭","맹장(Appendix)","S자결장"], ans:1, exp:"RUQ = 우상복부. 간(Liver), 담낭이 주로 위치. LUQ=비장, RLQ=맹장, LLQ=S결장", tag:"복부구역" },
+      { q:"Sagittal plane (시상면)은?", opts:["몸을 위아래로 나누는 면","몸을 좌우로 나누는 면","몸을 앞뒤로 나누는 면","관절을 가로지르는 면"], ans:1, exp:"Sagittal(시상면) = 몸을 좌우로 나누는 면. Transverse=위아래, Frontal/Coronal=앞뒤", tag:"면" },
+      { q:"Transverse / Horizontal plane은?", opts:["좌우로 나누는 면","몸을 위아래로 나누는 면","앞뒤로 나누는 면","대각선으로 나누는 면"], ans:1, exp:"Transverse(가로면) = 몸을 위쪽과 아래쪽으로 나누는 면", tag:"면" },
+      { q:"Dorsum 의 의미는?", opts:["발바닥쪽","등·발등","손바닥쪽","무릎앞쪽"], ans:1, exp:"Dorsum = 등 또는 발등 쪽. 발바닥은 Plantar, 손바닥은 Palmar/Volar", tag:"방향" },
+      { q:"Plantar 의 의미는?", opts:["발등","손등","발바닥","무릎아래"], ans:2, exp:"Plantar = 발바닥 쪽 (예: Plantar fasciitis 족저근막염)", tag:"방향" },
+    ]
+  },
+  "Ch.3 피부계통": {
+    questions: [
+      { q:"Epidermis 의 한국어는?", opts:["진피","표피","피하조직","근막"], ans:1, exp:"Epidermis = 표피 (가장 바깥층). Dermis=진피, Hypodermis=피하조직", tag:"피부" },
+      { q:"Hyperhidrosis 의 의미는?", opts:["땀 분비 감소","과도한 발한(땀 과다)","피부 건조증","피부 경화증"], ans:1, exp:"Hyper(과다)+hidr/o(땀)+osis(상태) = 과다발한증", tag:"피부질환" },
+      { q:"Seborrhea 의 의미는?", opts:["코피","피지 과다분비","혈뇨","설사"], ans:1, exp:"Seb/o(피지)+rrhea(흐름) = 피지 과다분비·지루", tag:"피부질환" },
+      { q:"Cyanosis 의 의미는?", opts:["황달(피부 노란색)","청색증(피부 파란색)","홍반","백반증"], ans:1, exp:"Cyan/o(청색)+osis = 청색증. 산소 부족 시 피부·점막이 파랗게 변하는 상태", tag:"피부증상" },
+      { q:"Necrotic 의 의미는?", opts:["새로운 세포 생성","조직이 죽은(괴사)","염증이 있는","종양이 있는"], ans:1, exp:"Necro(죽음)+tic = 괴사성·죽은 조직. Necrosis = 괴사", tag:"피부증상" },
+      { q:"Dermatologist 의 의미는?", opts:["신경과 전문의","피부과 전문의","정형외과 전문의","안과 전문의"], ans:1, exp:"Dermato(피부)+logist(전문가) = 피부과 전문의", tag:"전문의" },
+      { q:"Erythema 의 의미는?", opts:["부종","홍반(피부 붉어짐)","수포","탈모"], ans:1, exp:"Erythem/o(붉은)+a = 홍반. Erythro-(붉은 혈구)와 같은 어원", tag:"피부증상" },
+      { q:"Anhidrosis 의 의미는?", opts:["과다발한","무한증(땀이 나지 않음)","피부 통증","피부 가려움"], ans:1, exp:"An(없음)+hidr/o(땀)+osis = 무한증 (땀이 안 나는 상태)", tag:"피부질환" },
+    ]
+  },
+  "Ch.4 근골격계": {
+    questions: [
+      { q:"Thoracic cage 의 한국어는?", opts:["두개골","흉곽(가슴우리)","골반","척추"], ans:1, exp:"Thoracic(흉부의)+cage(우리) = 흉곽. 복장뼈+갈비뼈+등뼈로 구성", tag:"뼈" },
+      { q:"Scapula 의 한국어는?", opts:["빗장뼈(쇄골)","어깨뼈(견갑골)","위팔뼈","복장뼈"], ans:1, exp:"Scapula = 어깨뼈(견갑골). Clavicle=빗장뼈, Humerus=위팔뼈", tag:"뼈" },
+      { q:"Arthritis 의 의미는?", opts:["관절 성형술","관절 통증","관절 염증","관절 절제"], ans:2, exp:"Arthr/o(관절)+itis(염증) = 관절염 (Arthritis)", tag:"관절질환" },
+      { q:"Arthralgia 의 의미는?", opts:["관절 염증","관절 성형","관절 통증","관절 절제"], ans:2, exp:"Arthr/o(관절)+algia(통증) = 관절통 (염증 없이 통증만 있는 상태)", tag:"관절질환" },
+      { q:"Osteoporosis 의 의미는?", opts:["뼈 종양","골다공증 (뼈 밀도 감소)","골절","뼈 염증"], ans:1, exp:"Osteo(뼈)+por(구멍)+osis = 골다공증. 뼈의 밀도가 감소하여 골절 위험 증가", tag:"뼈질환" },
+      { q:"Osteosarcoma 의 의미는?", opts:["뼈 감염","골연화증","골육종 (뼈 악성종양)","골절"], ans:2, exp:"Osteo(뼈)+sarcoma(악성종양) = 골육종. 가장 흔한 원발성 뼈 악성종양", tag:"뼈질환" },
+      { q:"Arthroscopy 의 의미는?", opts:["관절 절제술","관절 성형술","관절경 검사","관절 X선"], ans:2, exp:"Arthr/o(관절)+scopy(내시경검사) = 관절경검사. 관절 내부를 카메라로 관찰", tag:"검사" },
+      { q:"Carpal Tunnel Syndrome 의 의미는?", opts:["발목관 증후군","손목관 증후군 (수근관증후군)","어깨 충돌증후군","팔꿈치 과사용증후군"], ans:1, exp:"Carpal(손목뼈의)+Tunnel+Syndrome = 수근관증후군. 정중신경이 압박되는 질환", tag:"관절질환" },
+      { q:"Phalanges 의 의미는?", opts:["손목뼈","손허리뼈","손가락뼈·발가락뼈","발목뼈"], ans:2, exp:"Phalanges(복수) = 손가락뼈·발가락뼈 총칭. 단수형은 Phalanx", tag:"뼈" },
+      { q:"Hallux 의 의미는?", opts:["새끼발가락","엄지발가락(발의 첫째 발가락)","발뒤꿈치","발등"], ans:1, exp:"Hallux = 엄지발가락. Hallux valgus = 무지외반증 (엄지발가락이 바깥으로 휘는 변형)", tag:"뼈" },
+      { q:"Flexion 의 의미는?", opts:["폄(신전)","굽힘(굴곡)","벌림(외전)","모음(내전)"], ans:1, exp:"Flexion(굴곡) = 관절을 굽히는 운동. 반대는 Extension(신전, 폄)", tag:"운동" },
+      { q:"Abduction 의 의미는?", opts:["모음(내전)","벌림(외전)","굽힘","회전"], ans:1, exp:"Abduction = 벌림(외전): 신체 정중선에서 멀어지는 운동. 반대는 Adduction(모음)", tag:"운동" },
+      { q:"Muscular Dystrophy 의 의미는?", opts:["근육 종양","근이영양증(근육 퇴화 질환)","근육 감염","근육 과다 발달"], ans:1, exp:"Muscular(근육의)+Dystrophy(영양장애) = 근이영양증. 유전성 근육 퇴화 질환", tag:"근육질환" },
+      { q:"Sprain 의 의미는?", opts:["골절","탈구","염좌(인대 손상)","근육 파열"], ans:2, exp:"Sprain = 염좌. 관절 주위 인대가 늘어나거나 부분 파열된 상태. Strain(근육 좌상)과 구분!", tag:"외상" },
+    ]
+  },
+  "Ch.5 심혈관계": {
+    questions: [
+      { q:"Superior vena cava 의 한국어는?", opts:["하대정맥","상대정맥","폐동맥","대동맥"], ans:1, exp:"Superior(위쪽)+vena cava(대정맥) = 상대정맥. 상체 혈액을 심장 우심방으로 유입", tag:"혈관" },
+      { q:"Myocardium 의 의미는?", opts:["심장막","심내막","심근(심장근육)","심외막"], ans:2, exp:"Myo(근육)+cardium(심장) = 심근. 심장벽의 대부분을 차지하는 근육층", tag:"심장" },
+      { q:"Mitral (Bicuspid) valve 는 어디에 있는 판막인가?", opts:["우심방-우심실 사이","좌심방-좌심실 사이","우심실-폐동맥 사이","좌심실-대동맥 사이"], ans:1, exp:"Mitral(이첨판) = 좌심방-좌심실 사이의 판막. 2개 판막첨으로 구성 (Bicuspid=이첨)", tag:"심장" },
+      { q:"Sinoatrial (SA) node 의 역할은?", opts:["방실 전도 지연","심장의 정상 박동을 시작시키는 곳 (동방결절)","심실 수축 개시","혈압 조절"], ans:1, exp:"SA node = 동방결절. 심장의 정상 박동을 시작(페이스메이커 역할). 분당 60~100회 박동", tag:"전도계" },
+      { q:"Atrioventricular (AV) node 의 한국어는?", opts:["동방결절","방실결절","히스속","푸르킨예섬유"], ans:1, exp:"AV node = 방실결절. SA node 신호를 잠시 지연하여 심방 수축 후 심실이 수축되도록 함", tag:"전도계" },
+      { q:"Fibrous pericardium 의 한국어는?", opts:["장측심장막","벽측심장막","섬유심장막","심근"], ans:2, exp:"Fibrous(섬유성)+pericardium(심장막) = 섬유심장막. 가장 바깥 심장막으로 심장을 보호·고정", tag:"심장막" },
+      { q:"Anisocytosis 의 의미는?", opts:["적혈구 모양 이상","적혈구 크기 불균일한 상태","백혈구 감소","혈소판 증가"], ans:1, exp:"An(없다)+iso(동일한)+cytosis(세포 상태) = 불균등적혈구증. 적혈구 크기가 불균일한 상태", tag:"혈액" },
+      { q:"Hematocrit (Hct/Crit) 의 의미는?", opts:["혈색소 수치","혈액 중 혈구의 비율","백혈구 수","혈소판 수"], ans:1, exp:"Hematocrit = 헤마토크리트. 전체 혈액에서 혈구(주로 적혈구)가 차지하는 비율(%)", tag:"혈액검사" },
+      { q:"Leukemia 의 의미는?", opts:["적혈구 증가증","백혈병 (비정상 백혈구 과다)","혈소판 감소증","빈혈"], ans:1, exp:"Leuk/o(흰)+emia(혈액상태) = 백혈병. 비정상 백혈구가 과다 증식하는 혈액암", tag:"혈액질환" },
+      { q:"Erythrocytopenia 의 의미는?", opts:["적혈구 증가","적혈구 감소(감소증)","백혈구 감소","혈소판 감소"], ans:1, exp:"Erythrocyte(적혈구)+penia(감소) = 적혈구감소증 (빈혈의 원인 중 하나)", tag:"혈액질환" },
+      { q:"Hypertension 의 의미는?", opts:["저혈압","고혈압","정상 혈압","맥박 증가"], ans:1, exp:"Hyper(과다)+tension(장력/압력) = 고혈압. 수축기 140mmHg 이상 또는 이완기 90mmHg 이상", tag:"심혈관질환" },
+      { q:"Hyperlipidemia 의 의미는?", opts:["저지혈증","고지혈증 (혈중 지방 증가)","당뇨","고혈압"], ans:1, exp:"Hyper(과다)+lipid(지방)+emia(혈액상태) = 고지혈증. 혈중 콜레스테롤·중성지방 증가", tag:"심혈관질환" },
+    ]
+  },
+  "Ch.6 호흡기계": {
+    questions: [
+      { q:"Bronchitis 의 의미는?", opts:["기관지 확장증","기관지 성형술","기관지 염증","기관지 절제술"], ans:2, exp:"Bronch/o(기관지)+itis(염증) = 기관지염", tag:"기관지" },
+      { q:"Pneumonia 의 의미는?", opts:["기관지염","폐렴 (폐 감염·염증)","늑막염","폐기종"], ans:1, exp:"Pneumon/o(폐)+ia(상태) = 폐렴. 폐포에 세균·바이러스가 감염된 상태", tag:"폐질환" },
+      { q:"Tachypnea 의 의미는?", opts:["서호흡 (느린 호흡)","빈호흡 (빠른 호흡)","무호흡","호흡곤란"], ans:1, exp:"Tachy(빠른)+pnea(호흡) = 빈호흡. 성인 기준 분당 20회 이상의 빠른 호흡", tag:"호흡증상" },
+      { q:"Bradypnea 의 의미는?", opts:["빠른 호흡","느린 호흡 (서호흡)","정지된 호흡","얕은 호흡"], ans:1, exp:"Brady(느린)+pnea(호흡) = 서호흡. 성인 기준 분당 12회 미만의 느린 호흡", tag:"호흡증상" },
+      { q:"Dyspnea 의 의미는?", opts:["정상 호흡","빠른 호흡","호흡곤란 (숨쉬기 어려운 상태)","과호흡"], ans:2, exp:"Dys(어려운·비정상)+pnea(호흡) = 호흡곤란. 숨쉬기 힘든 느낌", tag:"호흡증상" },
+      { q:"Apnea 의 의미는?", opts:["빠른 호흡","느린 호흡","무호흡 (호흡 정지)","과호흡"], ans:2, exp:"A(없음)+pnea(호흡) = 무호흡. Sleep Apnea = 수면무호흡증", tag:"호흡증상" },
+      { q:"Hypercapnia 의 의미는?", opts:["혈중 산소 과다","혈중 이산화탄소 과다 (고탄산혈증)","저산소증","폐기능 저하"], ans:1, exp:"Hyper(과다)+capnia(CO₂) = 고탄산혈증. 혈중 CO₂ 농도가 정상보다 높은 상태", tag:"호흡생리" },
+      { q:"Bronchoscopy 의 의미는?", opts:["기관지 절제술","기관지 성형술","기관지경 검사","흉부 X선"], ans:2, exp:"Broncho(기관지)+scopy(내시경검사) = 기관지경검사. 내시경으로 기관지 내부를 직접 관찰", tag:"검사" },
+      { q:"Laryngeal 의 의미는?", opts:["기관의","기관지의","후두의","폐의"], ans:2, exp:"Laryngeal = 후두의 (후두에 관련된). Laryngo- = 후두. Laryngitis = 후두염", tag:"상기도" },
+      { q:"Hemoptysis 의 의미는?", opts:["혈뇨","기침으로 피를 뱉는 것 (객혈)","토혈","혈변"], ans:1, exp:"Hemo(혈액)+ptysis(뱉다) = 객혈. 기관지나 폐에서 출혈된 피를 기침과 함께 뱉는 것", tag:"호흡증상" },
+      { q:"Pulmonary angiography 의 의미는?", opts:["폐 생검","폐 기능 검사","폐혈관조영술","흉부 CT"], ans:2, exp:"Pulmonary(폐의)+angiography(혈관조영술) = 폐혈관조영술. 폐동맥에 조영제를 넣어 X선 촬영", tag:"검사" },
+      { q:"Anteroposterior (AP) 흉부 X선에서 AP의 의미는?", opts:["옆에서 찍는 방향 (측면)","앞에서 뒤로 찍는 방향 (전후방향)","위에서 아래로","대각선 방향"], ans:1, exp:"AP = Anteroposterior = 전후방. X선이 앞(anterior)에서 뒤(posterior)로 투과하는 촬영 방향", tag:"영상의학" },
+    ]
+  }
+};
+
+const chapters = Object.keys(allData);
+let curCh = chapters[0];
+let answered = {};
+let correctCount = 0;
+let quizMode = 'choice'; // 'choice' or 'type'
+
+function buildTabs() {
+  const wrap = document.getElementById('tabsWrap');
+  chapters.forEach(ch => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (ch === curCh ? ' active' : '');
+    btn.textContent = ch;
+    btn.onclick = () => switchChapter(ch);
+    wrap.appendChild(btn);
+  });
+}
+
+function setMode(m) {
+  quizMode = m;
+  document.getElementById('modeOX').classList.toggle('active', m === 'choice');
+  document.getElementById('modeType').classList.toggle('active', m === 'type');
+  answered = {}; correctCount = 0;
+  document.getElementById('correctCount').textContent = '0';
+  render();
+}
+
+function switchChapter(ch) {
+  curCh = ch;
+  answered = {}; correctCount = 0;
+  document.getElementById('correctCount').textContent = '0';
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', chapters[i] === ch);
+    if (chapters[i] === ch) b.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+  });
+  render();
+}
+
+function render() {
+  const area = document.getElementById('scrollArea');
+  area.scrollTop = 0;
+  area.innerHTML = '';
+  const qs = allData[curCh].questions;
+  qs.forEach((q, qi) => {
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    const isType = quizMode === 'type';
+    card.innerHTML = `
+      <div class="q-meta">
+        <span>${curCh} · ${qi+1}/${qs.length}</span>
+        <span class="q-tag">${q.tag}</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+      ${isType ? `
+        <div class="q-hint">💡 정답을 직접 입력하세요</div>
+        <div class="type-wrap">
+          <input class="type-input" id="ti${qi}" placeholder="정답 입력..." 
+            onkeydown="if(event.key==='Enter')checkType(${qi})" />
+          <button class="type-btn" onclick="checkType(${qi})">확인</button>
+        </div>
+      ` : `
+        <div class="options">
+          ${q.opts.map((o,oi)=>`
+            <button class="opt-btn" ontouchstart="" onclick="pick(${qi},${oi})" id="o${qi}_${oi}">
+              <span class="badge">${['①','②','③','④'][oi]}</span>
+              <span>${o}</span>
+            </button>`).join('')}
+        </div>
+      `}
+      <div class="exp-box" id="exp${qi}">${q.exp}</div>`;
+    area.appendChild(card);
+  });
+  updateProgress();
+}
+
+function pick(qi, sel) {
+  if (answered[qi] !== undefined) return;
+  answered[qi] = sel;
+  const q = allData[curCh].questions[qi];
+  if (sel === q.ans) { correctCount++; document.getElementById('correctCount').textContent = correctCount; }
+  q.opts.forEach((_,oi) => {
+    const btn = document.getElementById(`o${qi}_${oi}`);
+    btn.disabled = true;
+    if (oi === q.ans) btn.classList.add('correct');
+    else if (oi === sel) btn.classList.add('wrong');
+  });
+  document.getElementById(`exp${qi}`).classList.add('show');
+  updateProgress();
+}
+
+function checkType(qi) {
+  if (answered[qi] !== undefined) return;
+  const q = allData[curCh].questions[qi];
+  const input = document.getElementById(`ti${qi}`);
+  const val = input.value.trim();
+  if (!val) return;
+  const correct = q.opts[q.ans];
+  const isOk = val === correct || val.replace(/\s/g,'') === correct.replace(/\s/g,'') ||
+    correct.includes(val) || val.includes(correct.split('(')[0].trim());
+  answered[qi] = isOk ? q.ans : -1;
+  input.disabled = true;
+  input.style.borderColor = isOk ? 'var(--correct)' : 'var(--wrong)';
+  input.style.background = isOk ? 'rgba(63,185,80,0.1)' : 'rgba(248,81,73,0.1)';
+  if (isOk) { correctCount++; document.getElementById('correctCount').textContent = correctCount; }
+  else {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'margin-top:6px;font-size:0.8rem;color:var(--correct);';
+    hint.textContent = `✅ 정답: ${correct}`;
+    input.parentNode.after(hint);
+  }
+  document.getElementById(`exp${qi}`).classList.add('show');
+  updateProgress();
+}
+
+function updateProgress() {
+  const total = allData[curCh].questions.length;
+  const done = Object.keys(answered).length;
+  document.getElementById('pbar').style.width = (done/total*100) + '%';
+  document.getElementById('plabel').textContent = `${done} / ${total}`;
+}
+
+function retry() {
+  answered = {}; correctCount = 0;
+  document.getElementById('correctCount').textContent = '0';
+  render();
+}
+
+function showScore() {
+  const total = allData[curCh].questions.length;
+  const pct = Math.round(correctCount/total*100);
+  const [emoji,msg] = pct>=90?['🎉','완벽합니다!']:pct>=70?['👍','잘했어요!']:pct>=50?['📚','조금 더 공부해봐요']:['💪','다시 도전해봐요!'];
+  document.getElementById('scrollArea').innerHTML = `
+    <div class="score-screen">
+      <div class="score-ring">
+        <div class="score-big">${correctCount}/${total}</div>
+        <div class="score-of">정답</div>
+      </div>
+      <div class="score-emoji">${emoji}</div>
+      <div class="score-title">${msg}</div>
+      <div class="score-sub">정답률 ${pct}% · ${curCh}</div>
+    </div>`;
+}
+
+buildTabs();
+render();
+</script>
+</body>
+</html>
