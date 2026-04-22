@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>의학용어 퀴즈</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+  :root {
+    --bg:#0d1117; --card:#161b22; --border:#21262d;
+    --accent:#58a6ff; --accent2:#79c0ff;
+    --text:#e6edf3; --muted:#8b949e;
+    --correct:#3fb950; --wrong:#f85149;
+    --tag-bg:rgba(31,111,235,0.18); --tag:#79c0ff;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+  .header{flex-shrink:0;background:linear-gradient(160deg,#0d1f3c,#0d1117);padding:calc(var(--safe-top) + 14px) 16px 12px;border-bottom:1px solid var(--border)}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .header h1{font-size:1.1rem;font-weight:900}
+  .header h1 span{color:var(--accent2)}
+  .score-pill{background:var(--card);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:0.78rem;color:var(--correct);font-weight:700}
+  .progress-wrap{display:flex;align-items:center;gap:8px}
+  .progress-bar-bg{flex:1;height:5px;background:var(--border);border-radius:99px}
+  .progress-bar{height:5px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 0.35s;width:0%}
+  .progress-label{font-size:0.7rem;color:var(--muted);white-space:nowrap;min-width:48px;text-align:right}
+
+  .tabs-wrap{flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;display:flex;gap:6px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border)}
+  .tabs-wrap::-webkit-scrollbar{display:none}
+  .tab-btn{flex-shrink:0;padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:0.73rem;font-family:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+  .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+  .mode-bar{flex-shrink:0;display:flex;gap:6px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border)}
+  .mode-btn{flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--muted);font-size:0.78rem;font-family:inherit;font-weight:500;cursor:pointer}
+  .mode-btn.active{border-color:var(--accent);background:rgba(88,166,255,0.12);color:var(--accent2);font-weight:700}
+
+  .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(var(--safe-bottom) + 76px)}
+
+  .q-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 16px 16px;margin-bottom:12px}
+  .q-meta{font-size:0.67rem;font-weight:700;color:var(--accent);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+  .q-tag{background:var(--tag-bg);color:var(--tag);border-radius:4px;padding:1px 6px;font-size:0.64rem;font-weight:600}
+  .q-text{font-size:0.93rem;font-weight:500;line-height:1.65;margin-bottom:14px;word-break:keep-all;white-space:pre-wrap}
+
+  .options{display:flex;flex-direction:column;gap:7px}
+  .opt-btn{display:flex;align-items:center;gap:10px;width:100%;padding:12px 13px;border-radius:11px;border:1.5px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:0.87rem;font-family:inherit;font-weight:400;text-align:left;cursor:pointer;line-height:1.5;word-break:keep-all}
+  .opt-btn:active:not(:disabled){background:#1e3a5f;border-color:var(--accent)}
+  .badge{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700}
+  .opt-btn.correct{border-color:var(--correct);background:rgba(63,185,80,0.1)}
+  .opt-btn.correct .badge{background:var(--correct);color:#fff}
+  .opt-btn.wrong{border-color:var(--wrong);background:rgba(248,81,73,0.1)}
+  .opt-btn.wrong .badge{background:var(--wrong);color:#fff}
+  .opt-btn:disabled{cursor:default}
+
+  .type-wrap{display:flex;gap:8px;margin-top:4px}
+  .type-input{flex:1;padding:11px 13px;border-radius:11px;border:1.5px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none}
+  .type-input:focus{border-color:var(--accent)}
+  .type-btn{padding:11px 16px;border-radius:11px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap}
+  .type-ans{margin-top:6px;font-size:0.8rem;color:var(--correct)}
+
+  .exp-box{display:none;margin-top:11px;padding:10px 13px;border-radius:10px;background:rgba(88,166,255,0.07);border-left:3px solid var(--accent);font-size:0.8rem;color:#79c0ff;line-height:1.65;word-break:keep-all}
+  .exp-box.show{display:block;animation:fadeIn 0.2s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:10px 16px calc(var(--safe-bottom) + 10px);display:flex;gap:8px;z-index:200}
+  .btn-result{flex:1;padding:14px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer}
+  .btn-retry{padding:14px 16px;border-radius:12px;background:transparent;color:var(--muted);border:1.5px solid var(--border);font-family:inherit;font-size:0.85rem;font-weight:500;cursor:pointer;white-space:nowrap}
+
+  .score-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px 120px;text-align:center;min-height:60vh}
+  .score-ring{width:130px;height:130px;border-radius:50%;border:4px solid var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:22px;background:linear-gradient(135deg,#0d1f3c,#0d1117);box-shadow:0 0 40px rgba(88,166,255,0.2)}
+  .score-big{font-size:2.2rem;font-weight:900;color:var(--accent2);line-height:1}
+  .score-of{font-size:0.7rem;color:var(--muted);margin-top:3px}
+  .score-emoji{font-size:1.8rem;margin-bottom:6px}
+  .score-title{font-size:1.1rem;font-weight:700;margin-bottom:6px}
+  .score-sub{font-size:0.82rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <h1>🩺 의학용어 <span>퀴즈</span></h1>
+    <div class="score-pill">✓ <span id="correctCount">0</span>개</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar-bg"><div class="progress-bar" id="pbar"></div></div>
+    <div class="progress-label" id="plabel">0 / 0</div>
+  </div>
+</div>
+<div class="tabs-wrap" id="tabsWrap"></div>
+<div class="mode-bar">
+  <button class="mode-btn active" id="modeChoice" onclick="setMode('choice')">🔤 객관식</button>
+  <button class="mode-btn" id="modeType" onclick="setMode('type')">✏️ 직접 입력</button>
+</div>
+<div class="scroll-area" id="scrollArea"></div>
+<div class="bottom-bar">
+  <button class="btn-retry" onclick="retry()">↺ 다시</button>
+  <button class="btn-result" onclick="showScore()">결과 보기 →</button>
+</div>
+
+<script>
+const D = {
+
+/* ────────────────────────────────────────────
+   Ch.1  기본 접미사 (p.1)
+──────────────────────────────────────────── */
+"Ch.1 기본접미사": { questions: [
+  {q:"-itis 의 의미는?", opts:["염증","통증","종양","절개"], ans:0, exp:"-itis = 염증 (예: Appendicitis 충수염, Arthritis 관절염)", tag:"접미사"},
+  {q:"-algia 의 의미는?", opts:["염증","통증","분비","부종"], ans:1, exp:"-algia = 통증 (예: Neuralgia 신경통, Cardialgia 심장통)", tag:"접미사"},
+  {q:"-dynia 의 의미는?", opts:["염증","종양","통증","경련"], ans:2, exp:"-dynia = 통증 (-algia와 동의어, 예: Pleurodynia)", tag:"접미사"},
+  {q:"-pathy 의 의미는?", opts:["절제","질병·장애","성형","출혈"], ans:1, exp:"-pathy = 질병·장애 (예: Arthropathy 관절병증, Neuropathy 신경병증)", tag:"접미사"},
+  {q:"-oma 의 의미는?", opts:["통증","염증","종양·살점","절개"], ans:2, exp:"-oma = 종양·살점 (예: Sarcoma 육종, Adenoma 선종)", tag:"접미사"},
+  {q:"-osis 의 의미는?", opts:["절제","염증","수술","비정상적 상태·과정"], ans:3, exp:"-osis = 비정상적 상태·과정 (예: Fibrosis 섬유증, Stenosis 협착)", tag:"접미사"},
+  {q:"-megaly 의 의미는?", opts:["감소","비대(커짐)","절제","경화"], ans:1, exp:"-megaly = 장기가 커진 상태 (예: Cardiomegaly 심장비대, Splenomegaly 비장비대)", tag:"접미사"},
+  {q:"-ectasis 의 의미는?", opts:["수축·축소","확장·팽창","염증","절개"], ans:1, exp:"-ectasis = 확장·팽창 (예: Bronchiectasis 기관지확장증, Atelectasis 무기폐)", tag:"접미사"},
+  {q:"-stasis 의 의미는?", opts:["증가","정지·억제","절개","용해"], ans:1, exp:"-stasis = 정지·억제 (예: Hemostasis 지혈, Bacteriostasis 세균 정지)", tag:"접미사"},
+  {q:"-cide 의 의미는?", opts:["치료","죽이다·살균","성형","검사"], ans:1, exp:"-cide = 죽이다 (예: Bactericide 살균제, Pesticide 살충제)", tag:"접미사"},
+  {q:"-clasis 의 의미는?", opts:["절개","파괴·분쇄","생성","감소"], ans:1, exp:"-clasis = 파괴·분쇄 (예: Osteoclasis 뼈 분쇄)", tag:"접미사"},
+  {q:"-lysis 의 의미는?", opts:["생성","파괴·분리·용해","염증","수술"], ans:1, exp:"-lysis = 파괴·분리 (예: Hemolysis 용혈, Paralysis 마비)", tag:"접미사"},
+  {q:"-rrhexis 의 의미는?", opts:["분비","파열·터짐","절개","팽창"], ans:1, exp:"-rrhexis = 파열·터짐 (예: Cardiorrhexis 심장파열)", tag:"접미사"},
+  {q:"-rrhea 의 의미는?", opts:["분리","흐름·분비","통증","굳음"], ans:1, exp:"-rrhea = 흐름·분비 (예: Diarrhea 설사, Rhinorrhea 콧물)", tag:"접미사"},
+  {q:"-rrhagia 의 의미는?", opts:["정상 분비","비정상 과다출혈","흐름 정지","염증"], ans:1, exp:"-rrhagia = 과다·비정상 출혈 (예: Menorrhagia 과다월경, Hemorrhagia 출혈)", tag:"접미사"},
+  {q:"-cyte 의 의미는?", opts:["조직","세포","기관","효소"], ans:1, exp:"-cyte = 세포 (예: Erythrocyte 적혈구, Leukocyte 백혈구)", tag:"접미사"},
+  {q:"-blast 의 의미는?", opts:["성숙 세포","배아·발달 단계의 미성숙 세포","죽은 세포","이식 세포"], ans:1, exp:"-blast = 미성숙·배아 세포 (예: Osteoblast 조골세포, Fibroblast 섬유모세포)", tag:"접미사"},
+  {q:"-plaisa (의 의미)는?", opts:["절제","세포 형성·발달","수축","분비"], ans:1, exp:"-plasia = 세포 형성·발달 (예: Hyperplasia 세포과증식, Dysplasia 이형성)", tag:"접미사"},
+  {q:"-gen 의 의미는?", opts:["분해","생산·기원하는 것","흡수","운반"], ans:1, exp:"-gen = 생산하는 것 (예: Pathogen 병원체, Carcinogen 발암물질)", tag:"접미사"},
+  {q:"-logy 의 의미는?", opts:["치료","연구하는 분야·학문","성형","절개"], ans:1, exp:"-logy = 연구하는 분야 (예: Cardiology 심장학, Pathology 병리학)", tag:"접미사"},
+  {q:"-logist 의 의미는?", opts:["진단 장비","전문의","수술 절차","치료 약물"], ans:1, exp:"-logist = 전문의 (예: Cardiologist 심장전문의, Dermatologist 피부과전문의)", tag:"접미사"},
+  {q:"-iatric 의 의미는?", opts:["검사","의학적 치료·의사","수술","연구"], ans:1, exp:"-iatric = 의학·치료 (예: Pediatric 소아과의, Psychiatric 정신과의)", tag:"접미사"},
+  {q:"-ist 의 의미는?", opts:["기관","전문가·사람","질환","과정"], ans:1, exp:"-ist = 전문가·사람 (예: Specialist, Physiotherapist)", tag:"접미사"},
+  {q:"-emia 의 의미는?", opts:["소변 상태","혈액 상태","조직 상태","림프 상태"], ans:1, exp:"-emia = 혈액 상태 (예: Anemia 빈혈, Hyperglycemia 고혈당)", tag:"접미사"},
+  {q:"-uria 의 의미는?", opts:["혈액 상태","소변 상태","호흡 상태","분비 상태"], ans:1, exp:"-uria = 소변 상태 (예: Hematuria 혈뇨, Glycosuria 당뇨)", tag:"접미사"},
+  {q:"-penia 의 의미는?", opts:["과다·증가","감소·결핍","염증","종양"], ans:1, exp:"-penia = 감소·결핍 (예: Leukopenia 백혈구감소, Thrombocytopenia 혈소판감소)", tag:"접미사"},
+  {q:"-gravida 의 의미는?", opts:["출산 경험","임신 상태","수유 중","폐경 후"], ans:1, exp:"-gravida = 임신 상태 (예: Primigravida 초임부, Multigravida 경산부)", tag:"접미사"},
+  {q:"-phobia 의 의미는?", opts:["좋아하는 것","이상하게 생긴 것","두려움","학문"], ans:2, exp:"-phobia = 두려움 (예: Claustrophobia 밀폐공포증, Hydrophobia 물공포증)", tag:"접미사"},
+  {q:"-philia 의 의미는?", opts:["공포","좋아하거나 잘 결합하는 성질","억제","감소"], ans:1, exp:"-philia = 좋아함·친화성 (예: Hemophilia 혈우병, Eosinophilia 호산구증가)", tag:"접미사"},
+  {q:"-plegia 의 의미는?", opts:["통증","경련","마비","부종"], ans:2, exp:"-plegia = 마비 (예: Paraplegia 하반신마비, Hemiplegia 반신마비)", tag:"접미사"},
+  {q:"-lith 의 의미는?", opts:["경련","결석·돌","출혈","괴사"], ans:1, exp:"-lith = 결석·돌 (예: Cholelithiasis 담석증, Urolithiasis 요로결석)", tag:"접미사"},
+  {q:"-lithiasis 의 의미는?", opts:["결석이 없는 상태","결석 형성 상태","조직 경화","감염"], ans:1, exp:"-lithiasis = 결석 형성 상태 (예: Cholelithiasis 담석증)", tag:"접미사"},
+  {q:"-pnea 의 의미는?", opts:["삼킴","호흡","소화","배설"], ans:1, exp:"-pnea = 호흡 (예: Apnea 무호흡, Dyspnea 호흡곤란, Tachypnea 빈호흡)", tag:"접미사"},
+  {q:"-ptosis 의 의미는?", opts:["확장","이완·하수·처짐","비대","강직"], ans:1, exp:"-ptosis = 이완·하수 (예: Blepharoptosis 안검하수, Nephroptosis 신장하수)", tag:"접미사"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.2  접두사 (p.2)
+──────────────────────────────────────────── */
+"Ch.2 접두사": { questions: [
+  {q:"접두사 'e / ex / exo-' 의 의미는?", opts:["안으로","밖으로(out)","위에","사이에"], ans:1, exp:"e/ex/exo- = 밖으로 (예: Excision 절제, Exocrine 외분비)", tag:"접두사"},
+  {q:"접두사 'extra-' 의 의미는?", opts:["안에","바깥·외부","아래","앞에"], ans:1, exp:"extra- = 바깥 (예: Extracellular 세포외, Extrauterine 자궁외)", tag:"접두사"},
+  {q:"접두사 'in-' 의 의미는?", opts:["위에","안에(in)","뒤에","곁에"], ans:1, exp:"in- = 안에 (예: Injection 주사, Intravenous 정맥내)", tag:"접두사"},
+  {q:"접두사 'sub-' 의 의미는?", opts:["위에","아래에","사이에","반대"], ans:1, exp:"sub- = 아래에 (예: Subcutaneous 피하, Sublingual 설하)", tag:"접두사"},
+  {q:"접두사 'inter-' 의 의미는?", opts:["위에","아래에","사이에","밖에"], ans:2, exp:"inter- = 사이에 (예: Intercostal 늑간, International 국가 간)", tag:"접두사"},
+  {q:"접두사 'intra-' 의 의미는?", opts:["바깥","사이에","안에(내부)","위에"], ans:2, exp:"intra- = 안에·내부 (예: Intravenous 정맥내, Intracranial 두개내)", tag:"접두사"},
+  {q:"접두사 'juxta-' 의 의미는?", opts:["반대","근접·옆에 있는","위에","안에"], ans:1, exp:"juxta- = 근접·바로 옆 (예: Juxtaglomerular 사구체 옆)", tag:"접두사"},
+  {q:"접두사 'para-' 의 의미는?", opts:["위에","안에","주위에·옆에","반대에"], ans:2, exp:"para- = 주위·곁에 (예: Parathyroid 부갑상선, Paramedical 의료보조)", tag:"접두사"},
+  {q:"접두사 'peri-' 의 의미는?", opts:["안에","주위에·둘러싸고","아래에","이전에"], ans:1, exp:"peri- = 주위에 (예: Pericardium 심장막, Periosteum 골막)", tag:"접두사"},
+  {q:"접두사 'meso-' 의 의미는?", opts:["큰","중간","작은","위"], ans:1, exp:"meso- = 중간 (예: Mesoderm 중배엽, Mesentery 장간막)", tag:"접두사"},
+  {q:"접두사 'post-' 의 의미는?", opts:["이전에","이후에(after)","사이에","위에"], ans:1, exp:"post- = ~후에 (예: Postoperative 수술 후, Postnatal 출생 후)", tag:"접두사"},
+  {q:"접두사 're-' 의 의미는?", opts:["처음","다시 하거나 뒤쪽","위에","아래에"], ans:1, exp:"re- = 다시 (예: Repeat 반복, Retrograde 역행성)", tag:"접두사"},
+  {q:"접두사 'retro-' 의 의미는?", opts:["앞쪽","뒤쪽·역방향","위쪽","안쪽"], ans:1, exp:"retro- = 뒤쪽·역행 (예: Retroperitoneal 복막 뒤, Retrograde 역행성)", tag:"접두사"},
+  {q:"접두사 'supra-' 의 의미는?", opts:["아래에","위에(above)","앞에","뒤에"], ans:1, exp:"supra- = 위에 (예: Supracostal 갈비뼈 위, Supraventricular 심실위)", tag:"접두사"},
+  {q:"접두사 'trans-' 의 의미는?", opts:["안에","통과하여·가로질러","아래에","위에"], ans:1, exp:"trans- = 가로질러·통과 (예: Transfusion 수혈, Transplant 이식)", tag:"접두사"},
+  {q:"접두사 'pre/pro-' 의 의미는?", opts:["이후에","앞에·이전에","사이에","아래에"], ans:1, exp:"pre/pro- = 앞에·이전에 (예: Prenatal 출생 전, Prognosis 예후)", tag:"접두사"},
+  {q:"접두사 'infra-' 의 의미는?", opts:["위에","아래에","사이에","밖에"], ans:1, exp:"infra- = 아래에 (예: Infracostal 갈비뼈 아래, Infrared 적외선)", tag:"접두사"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.3  방향·해부 용어 (p.2~3)
+──────────────────────────────────────────── */
+"Ch.3 방향·해부": { questions: [
+  {q:"Superior / Cranial 의 의미는?", opts:["아래쪽/꼬리쪽","위쪽/머리쪽","앞쪽","뒤쪽"], ans:1, exp:"Superior/Cranial = 위쪽·머리쪽. 반대 Inferior/Caudal = 아래·꼬리쪽", tag:"방향"},
+  {q:"Inferior / Caudal 의 의미는?", opts:["위쪽","아래쪽/꼬리쪽","안쪽","가쪽"], ans:1, exp:"Inferior/Caudal = 아래쪽·꼬리쪽. 반대 Superior/Cranial", tag:"방향"},
+  {q:"Anterior / Ventral 의 의미는?", opts:["뒤쪽/등쪽","앞쪽/배쪽","위쪽","안쪽"], ans:1, exp:"Anterior/Ventral = 앞쪽·배쪽. 반대 Posterior/Dorsal = 뒤쪽·등쪽", tag:"방향"},
+  {q:"Posterior / Dorsal 의 의미는?", opts:["앞쪽/배쪽","뒤쪽/등쪽","위쪽","가쪽"], ans:1, exp:"Posterior/Dorsal = 뒤쪽·등쪽. 반대 Anterior/Ventral", tag:"방향"},
+  {q:"Medial 의 의미는?", opts:["가쪽(바깥쪽)","안쪽(정중선 방향)","위쪽","앞쪽"], ans:1, exp:"Medial = 안쪽. 반대 Lateral = 가쪽", tag:"방향"},
+  {q:"Lateral 의 의미는?", opts:["안쪽","가쪽(바깥쪽)","위쪽","뒤쪽"], ans:1, exp:"Lateral = 가쪽. 반대 Medial = 안쪽", tag:"방향"},
+  {q:"Proximal 의 의미는?", opts:["먼쪽","몸통에 가까운쪽","위쪽","앞쪽"], ans:1, exp:"Proximal = 몸통에 가까운쪽. 반대 Distal = 먼쪽(말단)", tag:"방향"},
+  {q:"Distal 의 의미는?", opts:["몸통에 가까운쪽","먼쪽(말단)","위쪽","아래쪽"], ans:1, exp:"Distal = 먼쪽·말단. 반대 Proximal = 몸통에 가까운쪽", tag:"방향"},
+  {q:"Superficial 의 의미는?", opts:["깊은","얕은(표면에 가까운)","크고 넓은","내부의"], ans:1, exp:"Superficial = 얕은·표면쪽. 반대 Deep = 깊은", tag:"방향"},
+  {q:"Peripheral 의 의미는?", opts:["중심부","말초·주변부","위쪽","앞쪽"], ans:1, exp:"Peripheral = 말초·주변부. 반대 Central(중심)", tag:"방향"},
+  {q:"Supine 자세는?", opts:["엎드린 자세(복와위)","바로 누운 자세(앙와위)","앉은 자세","서있는 자세"], ans:1, exp:"Supine = 바로 누운(앙와위). 반대 Prone = 엎드린(복와위)", tag:"자세"},
+  {q:"Prone 자세는?", opts:["바로 누운 자세","엎드린 자세(복와위)","옆으로 누운 자세","서있는 자세"], ans:1, exp:"Prone = 엎드린(복와위). 반대 Supine = 바로 누운(앙와위)", tag:"자세"},
+  {q:"Plantar 의 의미는?", opts:["발등","손등","발바닥","무릎아래"], ans:2, exp:"Plantar = 발바닥쪽. 예: Plantar fasciitis 족저근막염", tag:"방향"},
+  {q:"Dorsum 의 의미는?", opts:["발바닥","등·발등","손바닥","무릎앞쪽"], ans:1, exp:"Dorsum = 등 또는 발등쪽", tag:"방향"},
+  {q:"Sagittal plane (시상면)은?", opts:["몸을 위아래로 나누는 면","몸을 좌우로 나누는 면","몸을 앞뒤로 나누는 면","대각으로 나누는 면"], ans:1, exp:"Sagittal = 시상면. 몸을 좌우(Left/Right)로 나누는 면", tag:"단면"},
+  {q:"Transverse / Horizontal plane은?", opts:["좌우로 나누는 면","위아래로 나누는 면","앞뒤로 나누는 면","비스듬히 나누는 면"], ans:1, exp:"Transverse/Horizontal = 가로면. 몸을 위아래(Superior/Inferior)로 나누는 면", tag:"단면"},
+  {q:"Frontal / Coronal plane은?", opts:["좌우로 나누는 면","위아래로 나누는 면","앞뒤로 나누는 면(전두면)","비스듬한 면"], ans:2, exp:"Frontal/Coronal = 전두면. 몸을 앞(Anterior)과 뒤(Posterior)로 나누는 면", tag:"단면"},
+  {q:"Right Upper Quadrant (RUQ)에 주로 있는 장기는?", opts:["비장·위","간·담낭","맹장·충수","S자결장"], ans:1, exp:"RUQ(우상복부) = 간(Liver)·담낭. LUQ=비장, RLQ=맹장, LLQ=S결장", tag:"복부구역"},
+  {q:"Left Lower Quadrant (LLQ)에 주로 있는 장기는?", opts:["간·담낭","비장·위","맹장·충수","S자결장·좌측 난소"], ans:3, exp:"LLQ(좌하복부) = S자결장(Sigmoid colon)·좌측 부속기 등", tag:"복부구역"},
+  {q:"Epigastric region(명치부위)은 어디인가?", opts:["배꼽 아래 중앙","배꼽 위 중앙(상복부 중앙)","오른쪽 옆구리","왼쪽 옆구리"], ans:1, exp:"Epigastric = 상복부 중앙(명치). 위(Stomach)가 위치", tag:"복부구역"},
+  {q:"Umbilical region은 어디인가?", opts:["명치부위","배꼽 주위 중앙부","오른쪽 하복부","왼쪽 하복부"], ans:1, exp:"Umbilical region = 배꼽(Umbilicus) 주위 중앙부", tag:"복부구역"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.4  피부계통 (p.3)
+──────────────────────────────────────────── */
+"Ch.4 피부계통": { questions: [
+  {q:"Epidermis 의 한국어는?", opts:["진피","표피(가장 바깥층)","피하조직","근막"], ans:1, exp:"Epidermis = 표피. Epi(위)+dermis(피부)", tag:"피부구조"},
+  {q:"Dermis 의 한국어는?", opts:["표피","진피(중간층)","피하조직","근막"], ans:1, exp:"Dermis = 진피. 혈관·신경·땀샘·모낭이 있는 중간층", tag:"피부구조"},
+  {q:"Hypodermis 의 한국어는?", opts:["표피","진피","피하조직(가장 아래층)","근막"], ans:2, exp:"Hypodermis = 피하조직. Hypo(아래)+dermis. 지방 조직 포함", tag:"피부구조"},
+  {q:"Cutaneous membrane 의 의미는?", opts:["내부 기관막","피부막(피부 전체)","점막","장막"], ans:1, exp:"Cutaneous = 피부막. 가장 크고 외부를 덮는 막", tag:"피부구조"},
+  {q:"Subcutaneous layer 의 의미는?", opts:["진피층","피부 아래층(피하층)","표피층","근막층"], ans:1, exp:"Sub(아래)+cutaneous(피부) = 피하층", tag:"피부구조"},
+  {q:"Hyperhidrosis 의 의미는?", opts:["땀 분비 감소","과도한 발한(땀 과다)","피부 건조","피부 감염"], ans:1, exp:"Hyper(과다)+hidr/o(땀)+osis = 과다발한증", tag:"피부질환"},
+  {q:"Paronychia 의 의미는?", opts:["손발톱 분리","손발톱 주위 감염(조갑주위염)","손발톱 흰색 변화","손발톱 함입"], ans:1, exp:"Para(주위)+onychio(손발톱) = 손발톱 주위 감염·조갑주위염", tag:"피부질환"},
+  {q:"Seborrhea 의 의미는?", opts:["코피","피지 과다분비·지루","혈뇨","설사"], ans:1, exp:"Seb/o(피지)+rrhea(흐름) = 지루·피지 과다분비", tag:"피부질환"},
+  {q:"Perlingual 의 의미는?", opts:["혀 주위의","손발톱 주위의","치아 주위의","눈 주위의"], ans:1, exp:"Peri(주위)+lingual(혀) = 혀 주위. (Peri-응용 예)", tag:"피부"},
+  {q:"Steatoma 의 의미는?", opts:["혈관종","피지낭종(지방 낭종)","섬유종","신경종"], ans:1, exp:"Steat/o(지방)+oma(종양) = 피지낭종·지방종", tag:"피부질환"},
+  {q:"Cryotherapy 의 의미는?", opts:["열 치료","냉동 치료","방사선 치료","레이저 치료"], ans:1, exp:"Cryo(차가운)+therapy(치료) = 냉동치료법 (예: 사마귀, 피부 병변 제거)", tag:"피부치료"},
+  {q:"Papilloma 의 의미는?", opts:["악성 종양","양성 유두모양 종양(사마귀 모양)","낭종","농양"], ans:1, exp:"Papill/o(유두)+oma = 유두종. 양성 사마귀 모양 종양", tag:"피부질환"},
+  {q:"Cyanotic 의 의미는?", opts:["황달성","청색증 (피부·점막 파란색)","홍반성","빈혈성"], ans:1, exp:"Cyan/o(청색)+tic = 청색증. 산소 부족으로 피부·점막이 파래짐", tag:"피부증상"},
+  {q:"Diaphoresis 의 의미는?", opts:["무한증 (땀 없음)","발한·땀 분비","피부 건조증","모공 막힘"], ans:1, exp:"Diaphoresis = 땀 흘림·발한. 특히 과도한 발한을 의미", tag:"피부증상"},
+  {q:"Erythema 의 의미는?", opts:["청색증","홍반·피부 붉어짐","황달","백반"], ans:1, exp:"Erythem/o(붉은색)+a = 홍반", tag:"피부증상"},
+  {q:"Dermatologist 의 의미는?", opts:["신경과 전문의","피부과 전문의","정형외과 전문의","안과 전문의"], ans:1, exp:"Dermato(피부)+logist = 피부과 전문의", tag:"전문의"},
+  {q:"Dermatomy cosis 의 의미는?", opts:["피부 종양","피부 진균감염(피부사상균증)","피부 바이러스감염","피부 세균감염"], ans:1, exp:"Dermato(피부)+mycosis(진균감염) = 피부진균증", tag:"피부질환"},
+  {q:"Hemangioma 의 의미는?", opts:["혈관 염증","혈관 종양(혈관종)","혈관 경화","혈관 협착"], ans:1, exp:"Hem/o(혈)+angio(혈관)+oma = 혈관종", tag:"피부질환"},
+  {q:"Anhidrosis 의 의미는?", opts:["과다발한","무한증(땀이 안 남)","정상 발한","피지 과다분비"], ans:1, exp:"An(없음)+hidr/o(땀)+osis = 무한증", tag:"피부질환"},
+  {q:"Necrotic 의 의미는?", opts:["새 조직 생성","조직 괴사(죽음)","조직 감염","조직 비대"], ans:1, exp:"Necro(죽음)+tic = 괴사성. 조직이 죽은 상태", tag:"피부증상"},
+  {q:"Epithelial 의 의미는?", opts:["근육성의","상피성의","신경성의","결합조직성의"], ans:1, exp:"Epithelial = 상피세포의 (상피조직에 관한)", tag:"피부구조"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.5  근골격계 (p.4~5)
+──────────────────────────────────────────── */
+"Ch.5 근골격계①(뼈)": { questions: [
+  {q:"Skull 의 한국어는?", opts:["척추","두개골(머리뼈)","골반","흉골"], ans:1, exp:"Skull = 두개골. 뇌를 보호하는 머리 전체 뼈", tag:"뼈"},
+  {q:"Vertebral column 의 한국어는?", opts:["흉골","척주(척추 기둥)","갈비뼈","골반"], ans:1, exp:"Vertebral column = 척주. 26개의 척추뼈로 구성", tag:"뼈"},
+  {q:"Thoracic cage 의 한국어는?", opts:["두개골","흉곽(가슴우리)","골반","상지뼈"], ans:1, exp:"Thoracic cage = 흉곽. 복장뼈+갈비뼈+등뼈로 구성", tag:"뼈"},
+  {q:"Sternum 의 한국어는?", opts:["갈비뼈","복장뼈(흉골)","빗장뼈","어깨뼈"], ans:1, exp:"Sternum = 복장뼈(흉골). 흉곽의 앞 중앙", tag:"뼈"},
+  {q:"Clavicle 의 한국어는?", opts:["어깨뼈","빗장뼈(쇄골)","위팔뼈","복장뼈"], ans:1, exp:"Clavicle = 빗장뼈(쇄골). S자 모양 뼈로 어깨와 흉골 연결", tag:"뼈"},
+  {q:"Scapula 의 한국어는?", opts:["빗장뼈","어깨뼈(견갑골)","위팔뼈","자뼈"], ans:1, exp:"Scapula = 어깨뼈(견갑골). 등 위쪽 삼각형 모양 뼈", tag:"뼈"},
+  {q:"Humerus 의 한국어는?", opts:["자뼈","노뼈","위팔뼈","아래팔뼈"], ans:2, exp:"Humerus = 위팔뼈. 어깨부터 팔꿈치까지의 뼈", tag:"뼈"},
+  {q:"Ulna 의 한국어는?", opts:["위팔뼈","자뼈(尺骨·새끼손가락쪽 아래팔뼈)","노뼈","손목뼈"], ans:1, exp:"Ulna = 자뼈. 아래팔 안쪽(새끼손가락쪽) 뼈", tag:"뼈"},
+  {q:"Radius 의 한국어는?", opts:["자뼈","노뼈(拇指쪽 아래팔뼈)","위팔뼈","손목뼈"], ans:1, exp:"Radius = 노뼈. 아래팔 가쪽(엄지쪽) 뼈", tag:"뼈"},
+  {q:"Carpals 의 한국어는?", opts:["발목뼈","손목뼈(수근골)","손허리뼈","발허리뼈"], ans:1, exp:"Carpals = 손목뼈(수근골). 8개의 작은 뼈로 구성", tag:"뼈"},
+  {q:"Metacarpals 의 한국어는?", opts:["손목뼈","손허리뼈(중수골)","손가락뼈","발허리뼈"], ans:1, exp:"Metacarpals = 손허리뼈(중수골). 손목뼈와 손가락뼈 사이 5개 뼈", tag:"뼈"},
+  {q:"Phalanges 의 한국어는?", opts:["손목뼈","손허리뼈","손·발가락뼈","발목뼈"], ans:2, exp:"Phalanges = 손·발가락뼈. 단수형 Phalanx. 손 14개, 발 14개", tag:"뼈"},
+  {q:"Pelvic girdle 의 한국어는?", opts:["어깨이음뼈","골반이음뼈(골반대)","발목뼈","손목뼈"], ans:1, exp:"Pelvic girdle = 골반이음뼈. 좌우 볼기뼈+엉치뼈+꼬리뼈", tag:"뼈"},
+  {q:"Pelvic bone 의 한국어는?", opts:["엉치뼈","볼기뼈(관골)","꼬리뼈","정강뼈"], ans:1, exp:"Pelvic bone = 볼기뼈(관골/Hip bone). 다리와 몸통 연결 뼈", tag:"뼈"},
+  {q:"Sacrum 의 한국어는?", opts:["꼬리뼈","엉치뼈(천골)","볼기뼈","두덩뼈"], ans:1, exp:"Sacrum = 엉치뼈(천골). 척추 아래 삼각형 뼈", tag:"뼈"},
+  {q:"Femur 의 한국어는?", opts:["정강뼈","종아리뼈","넓적다리뼈(대퇴골)","발뒤꿈치뼈"], ans:2, exp:"Femur = 넓적다리뼈(대퇴골). 인체에서 가장 크고 강한 뼈", tag:"뼈"},
+  {q:"Patella 의 한국어는?", opts:["정강뼈","무릎뼈(슬개골)","발목뼈","발꿈치뼈"], ans:1, exp:"Patella = 무릎뼈(슬개골). 무릎 앞쪽에 위치하는 작은 원형 뼈", tag:"뼈"},
+  {q:"Tibia 의 한국어는?", opts:["종아리뼈","정강뼈(경골)","무릎뼈","발목뼈"], ans:1, exp:"Tibia = 정강뼈(경골). 하퇴 안쪽·굵은 뼈", tag:"뼈"},
+  {q:"Fibula 의 한국어는?", opts:["정강뼈","종아리뼈(비골)","무릎뼈","발꿈치뼈"], ans:1, exp:"Fibula = 종아리뼈(비골). 하퇴 가쪽 가는 뼈", tag:"뼈"},
+  {q:"Tarsals 의 한국어는?", opts:["발가락뼈","발목뼈(족근골)","발허리뼈","종아리뼈"], ans:1, exp:"Tarsals = 발목뼈(족근골). 7개 구성, 발뒤꿈치~발목 부위", tag:"뼈"},
+  {q:"Metatarsals 의 한국어는?", opts:["발목뼈","발허리뼈(중족골)","발가락뼈","발꿈치뼈"], ans:1, exp:"Metatarsals = 발허리뼈(중족골). 발목뼈~발가락뼈 사이 5개 뼈", tag:"뼈"},
+  {q:"Hallux 의 한국어는?", opts:["새끼발가락","엄지발가락(발 첫째)","발뒤꿈치","발등"], ans:1, exp:"Hallux = 엄지발가락. Hallux valgus = 무지외반증", tag:"뼈"},
+  {q:"Proximal phalanx 의 의미는?", opts:["발목뼈","먼쪽발가락뼈","몸쪽발가락뼈(기절골)","중간발가락뼈"], ans:2, exp:"Proximal phalanx = 기절골(몸쪽발가락뼈). 발가락뼈 중 발허리뼈에 가장 가까운 뼈", tag:"뼈"},
+  {q:"Sesamoid bones 의 의미는?", opts:["손목뼈","근육이나 인대 속에 박혀있는 작은 뼈","발목뼈","종자뼈(참깨씨 모양)"], ans:3, exp:"Sesamoid bones = 종자뼈. 근육 속에 박혀있는 작은 둥근 뼈 (예: 무릎뼈)", tag:"뼈"},
+  {q:"Sterno-Cleido-Mastoid 는 어디에 있는 근육인가?", opts:["어깨","목(흉쇄유돌근)","허리","허벅지"], ans:1, exp:"Sternocleidomastoid = 흉쇄유돌근. Sterno(흉골)+Cleido(빗장뼈)+Mastoid(꼭지돌기) 연결", tag:"뼈"},
+]},
+
+"Ch.5 근골격계②(관절·운동)": { questions: [
+  {q:"Arthro / Articulo 의 의미는?", opts:["근육","관절","신경","뼈"], ans:1, exp:"Arthro/Articulo = 관절. (예: Arthritis 관절염, Articular 관절의)", tag:"관절"},
+  {q:"Arthralgia 의 의미는?", opts:["관절 염증","관절 통증","관절 성형","관절 절제"], ans:1, exp:"Arthr/o(관절)+algia(통증) = 관절통. 염증 없이 통증만 있는 상태", tag:"관절"},
+  {q:"Arthritis 의 의미는?", opts:["관절 통증","관절 성형","관절 염증","관절 절제"], ans:2, exp:"Arthr/o(관절)+itis(염증) = 관절염", tag:"관절"},
+  {q:"Arthropathy 의 의미는?", opts:["관절 절제술","관절 질환","관절 성형술","관절 검사"], ans:1, exp:"Arthr/o(관절)+pathy(질환) = 관절병증", tag:"관절"},
+  {q:"Arthroscopy 의 의미는?", opts:["관절 절제술","관절 성형술","관절경 검사","관절 이식"], ans:2, exp:"Arthr/o(관절)+scopy(내시경검사) = 관절경검사. 관절 내부를 카메라로 관찰", tag:"관절"},
+  {q:"Arthroplasty 의 의미는?", opts:["관절 절제술","관절 성형·재건술","관절 절개술","관절 검사"], ans:1, exp:"Arthr/o(관절)+plasty(성형) = 관절성형술. 인공관절 치환술 등", tag:"관절"},
+  {q:"Interarticular 의 의미는?", opts:["관절 바깥","관절 사이의","관절 위의","관절 아래의"], ans:1, exp:"Inter(사이)+articular(관절의) = 관절 사이의", tag:"관절"},
+  {q:"Bursa / Burso 의 의미는?", opts:["인대","점액낭(관절 주위 쿠션 주머니)","연골","힘줄"], ans:1, exp:"Bursa = 점액낭. 관절 운동 시 마찰을 줄이는 주머니", tag:"관절"},
+  {q:"Bursitis 의 의미는?", opts:["인대 염증","점액낭 염증","관절 염증","연골 염증"], ans:1, exp:"Burs/o(점액낭)+itis(염증) = 점액낭염", tag:"관절"},
+  {q:"Bursectomy 의 의미는?", opts:["점액낭 절개","점액낭 절제술","점액낭 성형","점액낭 검사"], ans:1, exp:"Burs/o(점액낭)+ectomy(절제) = 점액낭 절제술", tag:"관절"},
+  {q:"Physis 의 의미는?", opts:["근육층","성장판(뼈)","힘줄","연골판"], ans:1, exp:"Physis = 성장판(Growth plate). 뼈의 가운데 부분", tag:"뼈성장"},
+  {q:"Diaphysis 의 의미는?", opts:["뼈끝(골단)","뼈몸통(골간)","성장판","뼈막"], ans:1, exp:"Dia(사이)+physis = 뼈몸통(골간). 긴뼈의 중간 부위", tag:"뼈성장"},
+  {q:"Epiphysis 의 의미는?", opts:["뼈몸통(골간)","뼈끝(골단)","성장판","뼈막"], ans:1, exp:"Epi(위)+physis = 뼈끝(골단). 긴뼈의 양쪽 끝 부위", tag:"뼈성장"},
+  {q:"Osteoporosis 의 의미는?", opts:["뼈 종양","골다공증(뼈 밀도 감소)","뼈 골절","뼈 염증"], ans:1, exp:"Osteo(뼈)+por(구멍)+osis = 골다공증. 뼈 밀도 감소로 골절 위험 증가", tag:"뼈질환"},
+  {q:"Sarcoma 의 의미는?", opts:["양성 뼈 종양","결합조직에서 발생한 악성 종양","뼈 염증","뼈 경화"], ans:1, exp:"Sarc/o(살)+oma(종양) = 육종. 결합조직 기원 악성 종양 (매우 악성)", tag:"뼈질환"},
+  {q:"Chondrosarcoma 의 의미는?", opts:["뼈 육종","연골 악성 종양","근육 종양","지방 종양"], ans:1, exp:"Chondr/o(연골)+sarcoma = 연골육종. 연골에서 발생하는 악성 종양", tag:"뼈질환"},
+  {q:"Osteosarcoma 의 의미는?", opts:["연골 악성 종양","골육종(뼈 악성 종양)","근육 악성 종양","지방 악성 종양"], ans:1, exp:"Osteo(뼈)+sarcoma = 골육종. 가장 흔한 원발성 뼈 악성 종양", tag:"뼈질환"},
+  {q:"Flexion 의 의미는?", opts:["폄(신전)","굽힘(굴곡)","벌림","모음"], ans:1, exp:"Flexion = 굽힘(굴곡). 관절 각도가 줄어드는 운동. 반대 Extension(폄)", tag:"운동"},
+  {q:"Extension 의 의미는?", opts:["굽힘","폄(신전)","벌림","회전"], ans:1, exp:"Extension = 폄(신전). 관절 각도가 늘어나는 운동. 반대 Flexion(굽힘)", tag:"운동"},
+  {q:"Abduction 의 의미는?", opts:["모음(내전)","벌림(외전)·정중선에서 멀어짐","굽힘","회전"], ans:1, exp:"Abduction = 벌림(외전). 정중선에서 멀어지는 운동. 반대 Adduction(모음)", tag:"운동"},
+  {q:"Adduction 의 의미는?", opts:["벌림(외전)","모음(내전)·정중선으로 가까워짐","폄","회전"], ans:1, exp:"Adduction = 모음(내전). 정중선으로 가까워지는 운동. 반대 Abduction(벌림)", tag:"운동"},
+  {q:"Internal rotation 의 의미는?", opts:["바깥돌림","안쪽돌림(내회전)","벌림","굽힘"], ans:1, exp:"Internal rotation = 안쪽돌림(내회전). 정중선 방향으로 돌리는 운동", tag:"운동"},
+  {q:"External rotation 의 의미는?", opts:["안쪽돌림","바깥돌림(외회전)","모음","굽힘"], ans:1, exp:"External rotation = 바깥돌림(외회전). 정중선 반대방향으로 돌리는 운동", tag:"운동"},
+  {q:"Circumduction 의 의미는?", opts:["회전","원추형 전체 운동(원운동)","굽힘","폄"], ans:1, exp:"Circumduction = 원운동. 관절을 원뿔형으로 돌리는 복합운동(굴·신·외전·내전 조합)", tag:"운동"},
+  {q:"Sprain 의 의미는?", opts:["근육 좌상","인대 손상(염좌)","골절","탈구"], ans:1, exp:"Sprain = 염좌. 관절 주위 인대가 늘어나거나 부분 파열. Strain(근육 좌상)과 구분!", tag:"외상"},
+  {q:"Carpal Tunnel Syndrome(CTS)의 의미는?", opts:["발목관 증후군","수근관 증후군(손목관 증후군)","어깨 충돌증후군","발꿈치 통증증후군"], ans:1, exp:"Carpal(손목)+Tunnel+Syndrome = 수근관증후군. 정중신경이 수근관에서 압박되는 질환", tag:"관절질환"},
+  {q:"Carpal Joint Syndrome 의 의미는?", opts:["손목관절 증후군","엉덩관절 증후군","무릎관절 증후군","발목관절 증후군"], ans:0, exp:"Carpal Joint Syndrome = 손목관절 증후군", tag:"관절질환"},
+  {q:"Muscular Dystrophy (MD) 의 의미는?", opts:["근육 종양","근이영양증(유전성 근육 퇴화 질환)","근육 감염","근육 과증식"], ans:1, exp:"Muscular(근육)+Dystrophy(영양장애) = 근이영양증. 유전성 근육 퇴화 질환", tag:"근육질환"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.6  심장막·심장 구조 (p.6)
+──────────────────────────────────────────── */
+"Ch.6 심장·심막": { questions: [
+  {q:"Fibrous pericardium 의 한국어는?", opts:["벽측심장막","장측심장막","섬유심장막(가장 바깥층)","심근"], ans:2, exp:"Fibrous(섬유성)+pericardium = 섬유심장막. 심장을 보호·고정하는 가장 바깥 심장막", tag:"심장막"},
+  {q:"Serous pericardium 의 한국어는?", opts:["섬유심장막","장액성 심장막(2층 구조)","심근","심내막"], ans:1, exp:"Serous pericardium = 장액성 심장막. 벽측+장측 2개 층 구성", tag:"심장막"},
+  {q:"Parietal pericardium 의 한국어는?", opts:["장측심장막","벽측심장막(바깥층)","섬유심장막","심근"], ans:1, exp:"Parietal(벽측)+pericardium = 벽측심장막. 장측과 함께 심장막강 형성", tag:"심장막"},
+  {q:"Visceral pericardium 의 한국어는?", opts:["벽측심장막","장측심장막(심장에 밀착된 층)","섬유심장막","심내막"], ans:1, exp:"Visceral(장측)+pericardium = 장측심장막. 심장 표면에 붙어있는 안쪽 층 (=심외막)", tag:"심장막"},
+  {q:"Pericardial cavity 의 한국어는?", opts:["심장막강(두 층 사이 공간)","심실강","심방강","흉강"], ans:0, exp:"Pericardial cavity = 심장막강. 벽측·장측심장막 사이에 있는 공간 (10~50mL 액체)", tag:"심장막"},
+  {q:"Epicardium 의 한국어는?", opts:["심내막","심외막(가장 바깥 심장벽)","심근","심장막"], ans:1, exp:"Epi(위)+cardium(심장) = 심외막. 심장벽의 가장 바깥층 (장측심장막과 동일)", tag:"심장"},
+  {q:"Myocardium 의 한국어는?", opts:["심외막","심근(심장 근육층)","심내막","심장막"], ans:1, exp:"Myo(근육)+cardium = 심근. 심장벽의 대부분을 차지하는 근육층", tag:"심장"},
+  {q:"Endocardium 의 한국어는?", opts:["심외막","심근","심내막(심장 가장 안쪽막)","심장막"], ans:2, exp:"Endo(안)+cardium = 심내막. 심장 안쪽을 덮는 얇은 막", tag:"심장"},
+  {q:"Superior vena cava 의 한국어는?", opts:["하대정맥","상대정맥(상체혈액 모음)","폐동맥","대동맥"], ans:1, exp:"Superior(위)+vena cava(대정맥) = 상대정맥. 상체 혈액을 우심방으로 유입", tag:"혈관"},
+  {q:"Right atrium 의 한국어는?", opts:["좌심방","우심방","우심실","좌심실"], ans:1, exp:"Right atrium = 우심방. 체순환에서 되돌아온 혈액(정맥혈) 수용", tag:"심장"},
+  {q:"Fossa ovalis 의 한국어는?", opts:["난원창","난원와(심방 사이 벽의 오목)","심방중격","삼첨판"], ans:1, exp:"Fossa ovalis = 난원와. 태아기 난원공이 막혀서 남은 자국 (우심방 중격)", tag:"심장"},
+  {q:"Tricuspid valve 의 한국어는?", opts:["이첨판(승모판)","삼첨판(우방실판막)","대동맥판막","폐동맥판막"], ans:1, exp:"Tricuspid = 삼첨판. 우심방-우심실 사이 3개 판막첨 구성", tag:"심장"},
+  {q:"Right ventricle 의 한국어는?", opts:["우심방","우심실","좌심방","좌심실"], ans:1, exp:"Right ventricle = 우심실. 폐순환 혈액 펌프 (폐동맥으로 혈액 내보냄)", tag:"심장"},
+  {q:"Trabeculae carneae 의 의미는?", opts:["심장판막","심실 안쪽의 살기둥 구조","심장막","심장근육"], ans:1, exp:"Trabeculae carneae = 살기둥. 심실 안쪽 벽에 있는 불규칙한 근육 융기", tag:"심장"},
+  {q:"Pulmonary trunk 의 한국어는?", opts:["대동맥","폐동맥간(우심실→폐)","상대정맥","하대정맥"], ans:1, exp:"Pulmonary trunk = 폐동맥간. 우심실에서 나와 좌우 폐동맥으로 갈라짐", tag:"혈관"},
+  {q:"Left pulmonary veins 의 한국어는?", opts:["좌폐동맥","좌폐정맥(폐→좌심방)","우폐정맥","우폐동맥"], ans:1, exp:"Left pulmonary veins = 좌폐정맥. 좌폐에서 산소화된 혈액을 좌심방으로 운반", tag:"혈관"},
+  {q:"Left atrium 의 한국어는?", opts:["우심방","좌심방(폐정맥 혈액 수용)","우심실","좌심실"], ans:1, exp:"Left atrium = 좌심방. 폐정맥에서 산소 풍부한 혈액을 받아 좌심실로 보냄", tag:"심장"},
+  {q:"Mitral (Bicuspid) valve 의 위치는?", opts:["우심방-우심실 사이","좌심방-좌심실 사이","우심실-폐동맥 사이","좌심실-대동맥 사이"], ans:1, exp:"Mitral = 승모판(이첨판). 좌심방-좌심실 사이. 2개 판막첨 구성", tag:"심장"},
+  {q:"Chordae tendineae 의 의미는?", opts:["심장 전도 섬유","판막건삭(건삭·힘줄끈)","심장막 섬유","근육다발"], ans:1, exp:"Chordae tendineae = 건삭(판막 끈). 방실판막을 유두근에 연결하여 역류 방지", tag:"심장"},
+  {q:"Papillary muscles 의 의미는?", opts:["히스속","유두근(건삭 지지 근육)","푸르킨예섬유","동방결절"], ans:1, exp:"Papillary muscles = 유두근. 심실벽 돌출 근육으로 건삭(Chordae tendineae)을 지탱", tag:"심장"},
+  {q:"Interventricular septum 의 의미는?", opts:["심방중격","심실중격(두 심실 사이 벽)","심장막","심내막"], ans:1, exp:"Inter(사이)+ventricular(심실)+septum(격벽) = 심실중격", tag:"심장"},
+  {q:"Aortic valve 의 의미는?", opts:["폐동맥판막","대동맥판막(좌심실 출구)","삼첨판","승모판"], ans:1, exp:"Aortic valve = 대동맥판막. 좌심실과 대동맥 사이에 위치", tag:"심장"},
+  {q:"Ascending aorta 의 한국어는?", opts:["하행대동맥","상행대동맥","대동맥궁","복부대동맥"], ans:1, exp:"Ascending aorta = 상행대동맥. 좌심실에서 나와 위로 올라가는 대동맥 첫 부분", tag:"혈관"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.7  전도계 (p.6)
+──────────────────────────────────────────── */
+"Ch.7 전도계·혈액①": { questions: [
+  {q:"Sinoatrial (SA) node 의 역할은?", opts:["방실 전도 지연","심장의 정상 박동 시작(동방결절)","심실 수축 개시","혈압 조절"], ans:1, exp:"SA node = 동방결절. 심장 박동 개시(페이스메이커). 분당 60~100회 자동 방전", tag:"전도계"},
+  {q:"Atrial conducting fibers 의 의미는?", opts:["심실 전도 섬유","심방에서 SA→AV node로 전기 전달 섬유","심장막 섬유","판막 지지 섬유"], ans:1, exp:"Atrial conducting fibers = 심방 전도 섬유. SA node 신호를 방 전체로 전달", tag:"전도계"},
+  {q:"Atrioventricular (AV) node 의 역할은?", opts:["동방결절","방실결절(신호 지연 역할)","히스속","푸르킨예섬유"], ans:1, exp:"AV node = 방실결절. SA node 신호를 0.1초 지연하여 심방 수축 후 심실이 수축하도록 조율", tag:"전도계"},
+  {q:"AV bundle(히스속)의 역할은?", opts:["심방 전도","심실로 전기 신호를 빠르게 전달하는 유일한 경로","심장 박동 개시","혈압 조절"], ans:1, exp:"AV bundle = 히스속(His bundle). 심방→심실로 전기신호 전달하는 유일한 경로", tag:"전도계"},
+  {q:"Right / Left bundle branch 의 의미는?", opts:["히스속","히스속에서 갈라진 우·좌 가지","푸르킨예섬유","동방결절"], ans:1, exp:"Bundle branch = 히스속 우·좌 가지. 심실 내로 전기신호를 양방향 전달", tag:"전도계"},
+  {q:"Purkinje fiber system 의 의미는?", opts:["심방 전도 섬유","심실 근육 세포 전체에 전기 전달하는 망(푸르킨예섬유)","동방결절","방실결절"], ans:1, exp:"Purkinje fibers = 푸르킨예섬유. 심실 근육 전체에 전기 자극을 빠르게 전달", tag:"전도계"},
+  {q:"Purkinje fibers 의 특징은?", opts:["심장에서 가장 느린 전도 속도","가장 빠른 전도 속도 (심실 동시 수축 유발)","심방에만 존재","자동성 없음"], ans:1, exp:"Purkinje fibers = 심장에서 가장 빠른 전도. 심실 모든 부위에 거의 동시에 신호 전달", tag:"전도계"},
+  // 혈액 관련 (p.7)
+  {q:"Blast 의 의미는?", opts:["성숙한 세포","미성숙 세포(아직 분화 중인 세포)","죽은 세포","분열 완료 세포"], ans:1, exp:"Blast = 미성숙 세포 (예: Myeloblast 골수모세포, Lymphoblast 림프모세포)", tag:"혈액세포"},
+  {q:"Hemocytoblast 의 의미는?", opts:["성숙 적혈구","혈액 세포의 원조 모세포","혈소판","호산구"], ans:1, exp:"Hemo(혈액)+cyto(세포)+blast(미성숙) = 혈구모세포. 모든 혈액 세포의 원조", tag:"혈액세포"},
+  {q:"Lymphoblast 의 의미는?", opts:["호중구 모세포","림프구 모세포","적혈구 모세포","혈소판 모세포"], ans:1, exp:"Lymph/o(림프)+blast = 림프모세포. 림프구 전 단계 미성숙 세포", tag:"혈액세포"},
+  {q:"Monoblast 의 의미는?", opts:["림프구 모세포","단핵구 모세포","적혈구 모세포","호산구 모세포"], ans:1, exp:"Mono(하나)+blast = 단핵모세포. 단핵구 전 단계", tag:"혈액세포"},
+  {q:"Hematocrit (Crit) 의 의미는?", opts:["혈색소 농도","전체 혈액 중 혈구 비율(%)","백혈구 수치","혈소판 수치"], ans:1, exp:"Hematocrit = 헤마토크리트. 혈액 중 혈구(주로 적혈구)가 차지하는 비율. 정상 남 40-54%, 여 37-47%", tag:"혈액검사"},
+  {q:"Cytosis 의 의미는?", opts:["세포 감소","세포 증가 또는 세포 상태","세포 분열","세포 사멸"], ans:1, exp:"Cytosis = 세포 수 증가 또는 세포 상태 (예: Leukocytosis 백혈구증가증)", tag:"혈액"},
+  {q:"Anisocytosis 의 의미는?", opts:["적혈구 모양 이상","적혈구 크기 불균일 상태","백혈구 감소","혈소판 증가"], ans:1, exp:"An(없다)+iso(동일)+cytosis = 불균등적혈구증. 적혈구 크기가 서로 다른 상태", tag:"혈액"},
+  {q:"Leukocytosis 의 의미는?", opts:["백혈구 감소","백혈구 증가 상태","적혈구 증가","혈소판 증가"], ans:1, exp:"Leuko(백)+cyto(세포)+sis = 백혈구증가증. 감염·염증 시 백혈구 수 증가", tag:"혈액"},
+  {q:"Poikilocytosis 의 의미는?", opts:["적혈구 크기 불균일","적혈구 모양 불균일(다양한 모양)","백혈구 모양 이상","혈소판 모양 이상"], ans:1, exp:"Poikilo(다양한 모양)+cyte+osis = 이형적혈구증. 적혈구 모양이 다양하게 변한 상태", tag:"혈액"},
+]},
+
+"Ch.7 전도계·혈액②": { questions: [
+  {q:"Anemia 의 의미는?", opts:["백혈구 과다","빈혈(적혈구·헤모글로빈 부족)","혈소판 과다","혈액 응고 이상"], ans:1, exp:"An(없음)+emia(혈액상태) = 빈혈. 적혈구·헤모글로빈 수가 부족한 상태", tag:"혈액질환"},
+  {q:"Erythremia 의 의미는?", opts:["빈혈","적혈구 과다증","백혈병","혈소판 감소"], ans:1, exp:"Erythro(적혈구)+emia = 적혈구증가증(적혈구가 비정상적으로 많은 상태)", tag:"혈액질환"},
+  {q:"Hyperbilirubinemia 의 의미는?", opts:["혈중 지방 과다","혈중 빌리루빈 과다(황달 원인)","혈중 포도당 과다","혈중 칼슘 과다"], ans:1, exp:"Hyper+bilirubin+emia = 고빌리루빈혈증. 황달(Jaundice)의 주요 원인", tag:"혈액질환"},
+  {q:"Hypercholesterolemia 의 의미는?", opts:["저지혈증","고콜레스테롤혈증","고혈당","저혈당"], ans:1, exp:"Hyper+cholesterol+emia = 고콜레스테롤혈증. 심혈관 질환 위험 증가", tag:"혈액질환"},
+  {q:"Hyperlipidemia 의 의미는?", opts:["저지방혈증","고지혈증(혈중 지방 과다)","고혈압","저혈압"], ans:1, exp:"Hyper+lipid(지방)+emia = 고지혈증. 혈중 콜레스테롤·중성지방 증가", tag:"혈액질환"},
+  {q:"Leukemia 의 의미는?", opts:["적혈구 과다","백혈병(비정상 백혈구 과다 증식)","혈소판 감소증","빈혈"], ans:1, exp:"Leuk/o(흰)+emia = 백혈병. 비정상 백혈구가 무한 증식하는 혈액암", tag:"혈액질환"},
+  {q:"Erythrocytopenia 의 의미는?", opts:["적혈구 증가","적혈구 감소증","백혈구 감소","혈소판 감소"], ans:1, exp:"Erythrocyte(적혈구)+penia(감소) = 적혈구감소증", tag:"혈액질환"},
+  {q:"Leukocytopenia 의 의미는?", opts:["백혈구 증가","백혈구 감소증","적혈구 감소","혈소판 감소"], ans:1, exp:"Leukocyte(백혈구)+penia = 백혈구감소증. 감염에 취약해짐", tag:"혈액질환"},
+  {q:"Thrombocytopenia 의 의미는?", opts:["혈소판 증가","혈소판 감소증(출혈 경향)","적혈구 감소","백혈구 감소"], ans:1, exp:"Thrombocyte(혈소판)+penia = 혈소판감소증. 출혈이 잘 멈추지 않는 상태", tag:"혈액질환"},
+  {q:"Pancytopenia 의 의미는?", opts:["모든 혈구 증가","모든 혈구(적혈구·백혈구·혈소판) 감소","적혈구만 감소","백혈구만 감소"], ans:1, exp:"Pan(전체)+cyto(세포)+penia = 범혈구감소증. 모든 혈구 수치가 낮아진 상태", tag:"혈액질환"},
+  {q:"Phoresis 의 의미는?", opts:["파괴","전기장으로 분리·이동시키는 것","생성","억제"], ans:1, exp:"Phoresis = 전기장을 이용해 입자를 이동시키는 것 (예: Electrophoresis 전기영동)", tag:"혈액검사"},
+  {q:"Electrophoresis 의 의미는?", opts:["혈액 배양","단백질 등을 전기장으로 분리하는 과정","혈액 응고 검사","혈액 세포 계산"], ans:1, exp:"Electro(전기)+phoresis(이동) = 전기영동. 단백질 등을 전기장으로 분리하는 검사 기법", tag:"혈액검사"},
+  {q:"-poiesis 의 의미는?", opts:["세포 파괴","혈구 생성·조혈","세포 이동","세포 분화"], ans:1, exp:"-poiesis = 생성·조혈 (예: Hematopoiesis 조혈, Erythropoiesis 적혈구 생성)", tag:"혈액검사"},
+  {q:"Erythropoiesis 의 의미는?", opts:["백혈구 생성","적혈구 생성","혈소판 생성","림프구 생성"], ans:1, exp:"Erythro(적혈)+poiesis(생성) = 적혈구생성", tag:"혈액"},
+  {q:"Hematopoiesis 의 의미는?", opts:["혈액 응고","조혈(혈구 생성 과정)","혈액 순환","혈액 여과"], ans:1, exp:"Hemato(혈액)+poiesis(생성) = 조혈. 주로 골수에서 혈구 생성", tag:"혈액"},
+  {q:"Hemostasis 의 의미는?", opts:["출혈","지혈(출혈 멈춤)","혈전 형성","혈액 용혈"], ans:1, exp:"Hemo(혈액)+stasis(정지) = 지혈. 출혈을 멈추는 생리적 과정", tag:"혈액"},
+  {q:"Immune 의 의미는?", opts:["감염된","면역성이 있는","알레르기적인","염증이 있는"], ans:1, exp:"Immune = 면역성이 있는. 병원체에 저항하는 신호 활성화 능력", tag:"면역"},
+  {q:"Autoimmune disease 의 의미는?", opts:["외부 감염 질환","자신의 조직을 공격하는 면역 질환","면역결핍 질환","알레르기 질환"], ans:1, exp:"Auto(자신)+immune+disease = 자가면역 질환. 자신의 세포를 적으로 인식하여 공격", tag:"면역"},
+  {q:"Interstitial fluid 의 의미는?", opts:["혈액","세포 사이에 있는 간질액","림프액","뇌척수액"], ans:1, exp:"Interstitial fluid = 간질액. 세포 사이 공간에 채워져 있는 액체", tag:"체액"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.8  혈액 검사 약어 (p.8)
+──────────────────────────────────────────── */
+"Ch.8 혈액검사 약어": { questions: [
+  {q:"ABO 혈액형 검사에서 ABO의 전체 이름은?", opts:["Antigen Blood Object","ABO blood group","Arterial Blood Oxygen","Antibody Blood Order"], ans:1, exp:"ABO = ABO blood group (ABO 혈액형). 혈액형 분류 체계 (A, B, AB, O형)", tag:"약어"},
+  {q:"CBC의 전체 이름은?", opts:["Complete Blood Count","Cardiac Blood Check","Common Blood Cell","Chronic Blood Condition"], ans:0, exp:"CBC = Complete Blood Count = 전혈구 검사. 가장 기본적인 혈액 검사", tag:"약어"},
+  {q:"Diff 검사는 무엇을 보는 검사인가?", opts:["혈색소 측정","백혈구 분류 검사(Differential count)","혈소판 기능","혈액 응고"], ans:1, exp:"Diff = Differential count = 백혈구 분류 검사. 각 종류별 백혈구 비율 파악", tag:"약어"},
+  {q:"ESR의 전체 이름은?", opts:["Erythrocyte Sedimentation Rate(적혈구 침강 속도)","Enzyme Serum Reading","Electrolyte Serum Result","Essential Serum Range"], ans:0, exp:"ESR = Erythrocyte Sedimentation Rate = 적혈구 침강 속도. 염증 지표", tag:"약어"},
+  {q:"Hb / Hgb의 의미는?", opts:["헤마토크리트","헤모글로빈(혈색소)","헤파린","히스타민"], ans:1, exp:"Hb/Hgb = Hemoglobin = 헤모글로빈(혈색소). 산소 운반 단백질", tag:"약어"},
+  {q:"Hct의 의미는?", opts:["헤모글로빈","헤마토크리트(혈구 용적률)","헤파린","히스타민"], ans:1, exp:"Hct = Hematocrit = 헤마토크리트. 전체 혈액 중 혈구가 차지하는 비율(%)", tag:"약어"},
+  {q:"PMN의 전체 이름은?", opts:["Primary Medical Neutrophil","Polymorphonuclear leukocyte(다형핵 백혈구)","Plasma Membrane Nucleus","Peripheral Mono Neutrophil"], ans:1, exp:"PMN = Polymorphonuclear leukocyte = 다형핵 백혈구 = 과립구(호중구 포함)", tag:"약어"},
+  {q:"Eos의 의미는?", opts:["호중구","호산구(Eosinophil)","호염기구","단핵구"], ans:1, exp:"Eos = Eosinophil = 호산구. 알레르기·기생충 감염 시 증가", tag:"약어"},
+  {q:"RBC의 의미는?", opts:["Red Blood Cell(적혈구)","Right Blood Count","Reticulocyte Blood Cell","Regular Blood Check"], ans:0, exp:"RBC = Red Blood Cell = 적혈구. 산소 운반", tag:"약어"},
+  {q:"WBC의 의미는?", opts:["White Blood Cell(백혈구)","Whole Blood Count","Wide Blood Check","Working Blood Cell"], ans:0, exp:"WBC = White Blood Cell = 백혈구. 면역 방어", tag:"약어"},
+  {q:"Ag의 의미는?", opts:["항체(Antibody)","항원(Antigen)","응집소","보체"], ans:1, exp:"Ag = Antigen = 항원. 면역 반응을 유발하는 이물질", tag:"약어"},
+  {q:"Ab의 의미는?", opts:["항원(Antigen)","항체(Antibody)","응집원","보체"], ans:1, exp:"Ab = Antibody = 항체. 항원에 대응하여 생성되는 단백질", tag:"약어"},
+  {q:"AIDS의 전체 이름은?", opts:["Acquired Immune Deficiency Syndrome(후천성면역결핍증)","Autoimmune Inflammatory Disease Syndrome","Acute Infectious Disease System","Antibody Immune Deficiency State"], ans:0, exp:"AIDS = Acquired Immune Deficiency Syndrome = 후천성면역결핍증. HIV 감염 말기", tag:"약어"},
+  {q:"HIV의 전체 이름은?", opts:["Human Immunodeficiency Virus(인체면역결핍바이러스)","Hepatic Inflammatory Virus","Hypertension Immune Virus","Human Influenza Variant"], ans:0, exp:"HIV = Human Immunodeficiency Virus = 인체면역결핍바이러스. AIDS 원인 바이러스", tag:"약어"},
+  {q:"Ig의 의미는?", opts:["인슐린","면역글로불린(Immunoglobulin)","인터루킨","인터페론"], ans:1, exp:"Ig = Immunoglobulin = 면역글로불린 = 항체. IgG, IgM, IgA, IgE, IgD", tag:"약어"},
+  {q:"자가변역 질환에 관한 의학용어에서 'Stasis'의 의미는?", opts:["흐름","정지·억제","생성","파괴"], ans:1, exp:"Stasis = 정지·억제 (예: Hemostasis 지혈, Bacteriostasis 세균 증식 억제)", tag:"혈액"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.9  기관지·폐 구조 (p.8~10)
+──────────────────────────────────────────── */
+"Ch.9 기관지·폐①": { questions: [
+  {q:"Adenoid 의 의미는?", opts:["편도","아데노이드(인두편도)","후두","기관"], ans:1, exp:"Adenoid = 아데노이드(인두편도). 코 뒤 인두에 위치한 림프 조직", tag:"상기도"},
+  {q:"Adenoidectomy 의 의미는?", opts:["편도 절제술","아데노이드 절제술","후두 절제술","기관 절제술"], ans:1, exp:"Adenoid+ectomy = 아데노이드 절제술. 비대한 아데노이드 제거", tag:"수술"},
+  {q:"Alveolar 의 의미는?", opts:["기관지의","폐포의(허파꽈리에 관한)","기관의","흉막의"], ans:1, exp:"Alveolar = 폐포의. Alveolus(폐포) = 폐의 공기 교환 최소 단위", tag:"폐구조"},
+  {q:"Alveolo 의 의미는?", opts:["기관지","폐포(폐의 공기 주머니)","기관","흉막강"], ans:1, exp:"Alveolo = 폐포 (예: Alveolitis 폐포염, Alveolobronchitis 폐포기관지염)", tag:"폐구조"},
+  {q:"Alveolitis 의 의미는?", opts:["기관지 염증","폐포 염증","기관 염증","흉막 염증"], ans:1, exp:"Alveolo(폐포)+itis(염증) = 폐포염", tag:"폐질환"},
+  {q:"Bronchio / Broncho 의 의미는?", opts:["기관","기관지(bronchus)","폐포","흉막"], ans:1, exp:"Bronchio/Broncho = 기관지. (예: Bronchitis 기관지염, Bronchoscopy 기관지경검사)", tag:"기관지"},
+  {q:"Bronchiectasis 의 의미는?", opts:["기관지 협착","기관지 확장증","기관지 염증","기관지 종양"], ans:1, exp:"Bronch/o(기관지)+ectasis(확장) = 기관지확장증. 기관지가 비정상적으로 늘어난 상태", tag:"폐질환"},
+  {q:"Bronchitis 의 의미는?", opts:["기관지 확장증","기관지 염증","기관지 성형","기관지 절제"], ans:1, exp:"Bronch/o(기관지)+itis(염증) = 기관지염", tag:"폐질환"},
+  {q:"Bronchodilator 의 의미는?", opts:["기관지 수축제","기관지 확장제","기관지 항생제","기관지 소독제"], ans:1, exp:"Broncho(기관지)+dilator(확장) = 기관지확장제. 천식 치료에 사용", tag:"약물"},
+  {q:"Bronchoscopy 의 의미는?", opts:["기관지 절제술","기관지 성형술","기관지경 검사","흉부 X선 촬영"], ans:2, exp:"Broncho(기관지)+scopy(내시경) = 기관지경검사. 기관지 내부를 직접 관찰", tag:"검사"},
+  {q:"Bronchospasm 의 의미는?", opts:["기관지 이완","기관지 경련(수축)","기관지 확장","기관지 염증"], ans:1, exp:"Broncho(기관지)+spasm(경련) = 기관지경련. 천식 발작 시 나타남", tag:"폐질환"},
+  {q:"Bronchogenic carcinoma 의 의미는?", opts:["폐 염증","기관지 기원 폐암","폐 농양","폐 섬유증"], ans:1, exp:"Broncho(기관지)+genic(기원)+carcinoma(암) = 기관지 기원 폐암. 폐암의 가장 흔한 유형", tag:"폐질환"},
+  {q:"Bronchiolo 의 의미는?", opts:["대기관지","세기관지(소기관지)","폐포","기관"], ans:1, exp:"Bronchiolo = 세기관지(소기관지). 기관지 말단부의 가장 작은 기도", tag:"폐구조"},
+  {q:"Bronchiolitis 의 의미는?", opts:["기관지염","세기관지염(주로 영유아)","폐포염","폐렴"], ans:1, exp:"Bronchiolo+itis = 세기관지염. 주로 RSV에 의한 영유아 감염", tag:"폐질환"},
+  {q:"Larynx / Laryngeal 의 의미는?", opts:["기관의","후두(발성 기관)의","기관지의","폐의"], ans:1, exp:"Larynx = 후두. 발성 기관. Laryngeal = 후두의", tag:"상기도"},
+  {q:"Laryngospasm 의 의미는?", opts:["후두 이완","후두 경련(기도 수축)","후두 염증","후두 절제"], ans:1, exp:"Laryngo(후두)+spasm(경련) = 후두경련. 기도가 수축되어 호흡 곤란 유발", tag:"상기도"},
+  {q:"Laryngosteno 의 의미는?", opts:["후두 확장","후두 협착","후두 감염","후두 절제"], ans:1, exp:"Laryngo(후두)+steno(좁아짐) = 후두 협착", tag:"상기도"},
+  {q:"Laryngoscopy 의 의미는?", opts:["후두 절제술","후두 성형술","후두경 검사","후두 생검"], ans:2, exp:"Laryngo(후두)+scopy = 후두경검사. 후두 내부를 내시경으로 관찰", tag:"검사"},
+]},
+
+"Ch.9 기관지·폐②": { questions: [
+  {q:"Lobar 의 의미는?", opts:["세기관지의","폐엽(Lobe)의","폐포의","흉막의"], ans:1, exp:"Lobar = 폐엽의 (예: Lobar pneumonia = 대엽성 폐렴)", tag:"폐구조"},
+  {q:"Lobectomy 의 의미는?", opts:["폐 전체 절제","폐엽 절제술","기관지 절제","흉막 절제"], ans:1, exp:"Lob/o(폐엽)+ectomy(절제) = 폐엽절제술. 폐암·결핵 등에 시행", tag:"수술"},
+  {q:"Mediastino 의 의미는?", opts:["폐의","세로칸(종격)의","흉막의","심장막의"], ans:1, exp:"Mediastino = 세로칸(종격). 흉곽 내 좌우 폐 사이 공간", tag:"폐구조"},
+  {q:"Mediastinoscopy 의 의미는?", opts:["흉강경 검사","종격경(세로칸) 검사","기관지경 검사","폐 생검"], ans:1, exp:"Mediastino+scopy = 종격경검사. 세로칸(종격) 내부를 내시경으로 관찰·조직 검사", tag:"검사"},
+  {q:"Muco / Mucolytic 의 의미는?", opts:["기관지 확장","점액 용해(가래 녹임)","폐포 손상","기도 수축"], ans:1, exp:"Muco(점액)+lytic(용해) = 점액용해제. 가래를 묽게 하여 배출 용이하게 함", tag:"약물"},
+  {q:"Pneumonia 의 의미는?", opts:["기관지염","폐렴(폐 염증·감염)","흉막염","폐기종"], ans:1, exp:"Pneumon/o(폐)+ia = 폐렴. 폐포에 염증·삼출물이 차는 상태", tag:"폐질환"},
+  {q:"Pneumoconiosis 의 의미는?", opts:["폐 감염","진폐증(먼지에 의한 폐 질환)","폐 종양","폐 출혈"], ans:1, exp:"Pneumo(폐)+coni(먼지)+osis = 진폐증. 분진(석탄·석면 등) 흡입으로 폐 섬유화", tag:"폐질환"},
+  {q:"Pneumopleuritis 의 의미는?", opts:["폐렴","폐흉막염(폐+흉막 염증)","기관지염","폐농양"], ans:1, exp:"Pneumo(폐)+pleur(흉막)+itis = 폐흉막염. 폐와 흉막 모두 염증", tag:"폐질환"},
+  {q:"Spirometer 의 의미는?", opts:["혈압계","폐활량 측정 기구","혈당계","체온계"], ans:1, exp:"Spiro(호흡)+meter(측정기) = 폐활량계. 폐 기능을 측정하는 도구", tag:"검사"},
+  {q:"Rhinorrhea 의 의미는?", opts:["코 출혈","콧물(비루)","코 막힘","코 염증"], ans:1, exp:"Rhino(코)+rrhea(흐름) = 비루·콧물. Rhino(코)+-rrhea(흐름) 조합", tag:"상기도"},
+  {q:"Dyspnea 의 의미는?", opts:["정상 호흡","빠른 호흡","호흡곤란(숨쉬기 어려움)","느린 호흡"], ans:2, exp:"Dys(어려운)+pnea(호흡) = 호흡곤란", tag:"호흡증상"},
+  {q:"Oligopnea 의 의미는?", opts:["빠른 호흡","느리고 얕은 호흡(감소된 호흡)","무호흡","과호흡"], ans:1, exp:"Oligo(적은)+pnea = 얕고 느린 호흡·호흡 감소", tag:"호흡증상"},
+  {q:"Orthopnea 의 의미는?", opts:["누울 때 편한 호흡","앉거나 서있어야만 편한 호흡(기좌호흡)","야간 호흡 곤란","운동 시 호흡 곤란"], ans:1, exp:"Ortho(직립)+pnea = 기좌호흡. 앉거나 서야 편한 호흡. 심부전 징후", tag:"호흡증상"},
+  {q:"Tachypnea 의 의미는?", opts:["느린 호흡","빠른 호흡(빈호흡)","무호흡","과호흡"], ans:1, exp:"Tachy(빠른)+pnea = 빈호흡. 성인 기준 분당 20회 이상", tag:"호흡증상"},
+  {q:"Bradypnea 의 의미는?", opts:["빠른 호흡","느린 호흡(서호흡)","무호흡","과호흡"], ans:1, exp:"Brady(느린)+pnea = 서호흡. 성인 기준 분당 12회 미만", tag:"호흡증상"},
+  {q:"Apnea 의 의미는?", opts:["빠른 호흡","느린 호흡","무호흡(호흡 정지)","과호흡"], ans:2, exp:"A(없음)+pnea = 무호흡. Sleep Apnea = 수면무호흡증", tag:"호흡증상"},
+  {q:"Eupnea 의 의미는?", opts:["호흡곤란","정상 호흡","무호흡","과호흡"], ans:1, exp:"Eu(좋은)+pnea = 정상 호흡. 성인 기준 분당 12~20회 규칙적 호흡", tag:"호흡증상"},
+  {q:"Hyperpnea 의 의미는?", opts:["정상 호흡","깊고 빠른 과호흡","무호흡","얕은 호흡"], ans:1, exp:"Hyper(과다)+pnea = 과호흡. 깊고 빠른 호흡으로 CO₂가 지나치게 배출", tag:"호흡증상"},
+  {q:"Hemoptysis 의 의미는?", opts:["혈뇨","객혈(기침으로 피를 뱉음)","토혈","혈변"], ans:1, exp:"Hemo(혈액)+ptysis(뱉다) = 객혈. 기도·폐에서 출혈된 피를 기침과 함께 뱉는 것", tag:"호흡증상"},
+  {q:"Capnia 의 의미는?", opts:["산소","이산화탄소(CO₂)","질소","수분"], ans:1, exp:"Capnia = 혈중 CO₂ 상태. Hypercapnia = 고CO₂혈증, Hypocapnia = 저CO₂혈증", tag:"호흡생리"},
+  {q:"Hypercapnia 의 의미는?", opts:["혈중 산소 과다","혈중 CO₂ 과다(고탄산혈증)","혈중 산소 부족","혈중 CO₂ 부족"], ans:1, exp:"Hyper+capnia = 고탄산혈증. 혈중 CO₂ 농도 정상(35-45mmHg)보다 높음", tag:"호흡생리"},
+  {q:"Hypocapnia 의 의미는?", opts:["혈중 CO₂ 과다","혈중 CO₂ 부족(저탄산혈증)","혈중 산소 과다","혈중 산소 부족"], ans:1, exp:"Hypo+capnia = 저탄산혈증. 과호흡 시 CO₂가 지나치게 배출", tag:"호흡생리"},
+  {q:"Phonia / Aphonia 의 의미는?", opts:["호흡·무호흡","음성·음성 없음(실성증)","삼킴·삼킴 불가","냄새·후각 소실"], ans:1, exp:"Phonia = 음성. Aphonia = 실성증(목소리가 안 나옴). A(없음)+phonia", tag:"호흡증상"},
+  {q:"Dysphonia 의 의미는?", opts:["실성증(목소리 없음)","발성장애(쉰 목소리)","연하장애","후각 이상"], ans:1, exp:"Dys(이상)+phonia(음성) = 발성장애. 쉰 목소리, 음성 변화", tag:"호흡증상"},
+]},
+
+/* ────────────────────────────────────────────
+   Ch.10  흉부 X선 약어·폐기능 (p.9~10)
+──────────────────────────────────────────── */
+"Ch.10 흉부X선·폐기능": { questions: [
+  {q:"AP (흉부 X선)의 의미는?", opts:["좌우 방향","전후방향(Anteroposterior)","측면","대각선"], ans:1, exp:"AP = Anteroposterior = 전후방향. X선이 앞→뒤로 투과하여 찍는 방식", tag:"영상의학"},
+  {q:"CO2의 의미는?", opts:["일산화탄소","이산화탄소(Carbon dioxide)","산소","질소"], ans:1, exp:"CO₂ = Carbon dioxide = 이산화탄소. 세포 호흡 산물로 폐에서 배출", tag:"약어"},
+  {q:"CXR의 의미는?", opts:["Cardiac X-Ray","Chest X-Ray(흉부 X선)","Cervical X-Ray","Cranial X-Ray"], ans:1, exp:"CXR = Chest X-Ray = 흉부 X선 촬영. 가장 기본적이고 경제적인 흉부 영상 검사", tag:"약어"},
+  {q:"ERV의 의미는?", opts:["Expiratory Reserve Volume(호기예비량)","Elastic Respiratory Volume","External Rotation Volume","Erythrocyte Reserve Volume"], ans:0, exp:"ERV = Expiratory Reserve Volume = 호기예비량. 평상 호기 후 더 내쉴 수 있는 양", tag:"폐기능"},
+  {q:"IRV의 의미는?", opts:["Inspiratory Reserve Volume(흡기예비량)","Internal Rotation Volume","Immune Response Variant","Inspiratory Residual Ventilation"], ans:0, exp:"IRV = Inspiratory Reserve Volume = 흡기예비량. 평상 흡기 후 더 들이마실 수 있는 양", tag:"폐기능"},
+  {q:"O2의 의미는?", opts:["이산화탄소","산소(Oxygen)","질소","수소"], ans:1, exp:"O₂ = Oxygen = 산소. 세포 호흡의 필수 물질", tag:"약어"},
+  {q:"PA 흉부 X선의 의미는?", opts:["전후방향","후전방향(Posteroanterior)","측면 방향","사선 방향"], ans:1, exp:"PA = Posteroanterior = 후전방향. X선이 뒤→앞으로 투과. 표준 흉부 X선 촬영 방법", tag:"약어"},
+  {q:"CPR의 의미는?", opts:["Cardiac Pressure Rate","Cardiopulmonary Resuscitation(심폐소생술)","Chronic Pulmonary Reaction","Cerebral Pulse Rate"], ans:1, exp:"CPR = Cardiopulmonary Resuscitation = 심폐소생술. 심정지 시 응급처치", tag:"약어"},
+  {q:"PFT의 의미는?", opts:["Peripheral Function Test","Pulmonary Function Test(폐기능검사)","Plasma Fibrin Test","Pericardial Fluid Test"], ans:1, exp:"PFT = Pulmonary Function Test = 폐기능검사. 폐활량·기류 등 폐 기능 평가", tag:"폐기능"},
+  {q:"RV (폐기능)의 의미는?", opts:["Respiratory Velocity","Residual Volume(잔기량)","Right Ventricle","Resting Volume"], ans:1, exp:"RV = Residual Volume = 잔기량. 최대 호기 후에도 폐에 남아있는 공기량", tag:"폐기능"},
+  {q:"SOB의 의미는?", opts:["Sound of Breathing","Shortness of Breath(호흡곤란)","Severity of Bronchitis","State of Blood"], ans:1, exp:"SOB = Shortness of Breath = 호흡곤란. Dyspnea와 동의어", tag:"약어"},
+  {q:"SOA의 의미는?", opts:["Shortness of Air(호흡곤란)","Sound of Airway","State of Oxygen","Severity of Asthma"], ans:0, exp:"SOA = Shortness of Air = 공기 부족감·호흡 곤란", tag:"약어"},
+  {q:"T&A의 의미는?", opts:["Tonsillectomy & Adenoidectomy(편도·아데노이드 절제술)","Thorax & Abdomen","Trachea & Artery","Tidal & Airway"], ans:0, exp:"T&A = Tonsillectomy & Adenoidectomy = 편도 및 아데노이드 절제술", tag:"약어"},
+  {q:"TV (폐기능)의 의미는?", opts:["Tracheal Volume","Tidal Volume(1회 호흡량)","Total Ventilation","Thoracic Volume"], ans:1, exp:"TV = Tidal Volume = 1회 호흡량. 평상 호흡 시 1회에 들이쉬고 내쉬는 공기량(약 500mL)", tag:"폐기능"},
+  {q:"URI의 의미는?", opts:["Upper Respiratory Infection(상기도감염)","Urinary Retention Index","Urethral Imaging","Upper Rib Injury"], ans:0, exp:"URI = Upper Respiratory Infection = 상기도감염. 일반 감기 포함", tag:"약어"},
+  {q:"URT의 의미는?", opts:["Upper Respiratory Tract(상기도)","Urinary Retention Test","Upper Rib Trauma","Ultrasound Respiratory Test"], ans:0, exp:"URT = Upper Respiratory Tract = 상기도. 코~후두까지", tag:"약어"},
+  // 호흡 의학 용어
+  {q:"Diaphragm 의 의미는?", opts:["갈비뼈","횡격막(호흡 주 근육)","흉막","심장막"], ans:1, exp:"Diaphragm = 횡격막. 흉강과 복강을 나누는 가장 중요한 호흡 근육", tag:"폐구조"},
+  {q:"Mucolytic 의 의미는?", opts:["기관지 확장제","거담제(점액 용해)","기관지 수축제","항히스타민제"], ans:1, exp:"Muco(점액)+lytic(용해) = 거담제. 가래를 묽게 하여 배출", tag:"약물"},
+  {q:"Tonsillectomy 의 의미는?", opts:["아데노이드 절제술","편도 절제술","후두 절제술","기관 절제술"], ans:1, exp:"Tonsill(편도)+ectomy(절제) = 편도 절제술", tag:"수술"},
+  {q:"Adenoidectomy 의 의미는?", opts:["편도 절제술","아데노이드 절제술","후두 절제술","기관 절제술"], ans:1, exp:"Adenoid+ectomy = 아데노이드 절제술", tag:"수술"},
+  {q:"Pulmonary angiography 의 의미는?", opts:["폐 생검","폐기능검사","폐혈관조영술","흉부 CT"], ans:2, exp:"Pulmonary(폐)+angiography(혈관조영술) = 폐혈관조영술. 폐동맥에 조영제 주입", tag:"검사"},
+  {q:"Bronchoconstriction 의 의미는?", opts:["기관지 확장","기관지 수축(천식 발작 시)","기관지 염증","기관지 감염"], ans:1, exp:"Broncho(기관지)+constriction(수축) = 기관지수축. 천식 등에서 나타남", tag:"폐질환"},
+  {q:"Sphyxia / Asphyxia 의 의미는?", opts:["정상 호흡","질식(산소 부족+CO₂ 과다)","과호흡","서호흡"], ans:1, exp:"Asphyxia = 질식. 산소 공급이 안 되고 CO₂가 축적되는 상태", tag:"호흡증상"},
+]},
+
+};  // end of D
+
+const chapters = Object.keys(D);
+let curCh = chapters[0];
+let answered = {};
+let correctCount = 0;
+let quizMode = 'choice';
+
+function buildTabs() {
+  const wrap = document.getElementById('tabsWrap');
+  chapters.forEach(ch => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (ch===curCh?' active':'');
+    btn.textContent = ch;
+    btn.onclick = () => switchChapter(ch);
+    wrap.appendChild(btn);
+  });
+}
+
+function setMode(m) {
+  quizMode = m;
+  document.getElementById('modeChoice').classList.toggle('active', m==='choice');
+  document.getElementById('modeType').classList.toggle('active', m==='type');
+  answered={}; correctCount=0;
+  document.getElementById('correctCount').textContent='0';
+  render();
+}
+
+function switchChapter(ch) {
+  curCh=ch; answered={}; correctCount=0;
+  document.getElementById('correctCount').textContent='0';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',chapters[i]===ch);
+    if(chapters[i]===ch) b.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  });
+  render();
+}
+
+function render() {
+  const area = document.getElementById('scrollArea');
+  area.scrollTop=0; area.innerHTML='';
+  const qs = D[curCh].questions;
+  qs.forEach((q,qi)=>{
+    const card = document.createElement('div');
+    card.className='q-card';
+    const isType = quizMode==='type';
+    card.innerHTML=`
+      <div class="q-meta">
+        <span>${qi+1}/${qs.length}</span>
+        <span class="q-tag">${q.tag}</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+      ${isType?`
+        <div class="type-wrap">
+          <input class="type-input" id="ti${qi}" placeholder="정답 입력..."
+            onkeydown="if(event.key==='Enter')checkType(${qi})"/>
+          <button class="type-btn" onclick="checkType(${qi})">확인</button>
+        </div>
+      `:`
+        <div class="options">
+          ${q.opts.map((o,oi)=>`
+            <button class="opt-btn" ontouchstart="" onclick="pick(${qi},${oi})" id="o${qi}_${oi}">
+              <span class="badge">${['①','②','③','④'][oi]}</span>
+              <span>${o}</span>
+            </button>`).join('')}
+        </div>
+      `}
+      <div class="exp-box" id="exp${qi}">${q.exp}</div>`;
+    area.appendChild(card);
+  });
+  updateProgress();
+}
+
+function pick(qi,sel){
+  if(answered[qi]!==undefined) return;
+  answered[qi]=sel;
+  const q=D[curCh].questions[qi];
+  if(sel===q.ans){correctCount++;document.getElementById('correctCount').textContent=correctCount;}
+  q.opts.forEach((_,oi)=>{
+    const btn=document.getElementById(`o${qi}_${oi}`);
+    btn.disabled=true;
+    if(oi===q.ans) btn.classList.add('correct');
+    else if(oi===sel) btn.classList.add('wrong');
+  });
+  document.getElementById(`exp${qi}`).classList.add('show');
+  updateProgress();
+}
+
+function checkType(qi){
+  if(answered[qi]!==undefined) return;
+  const q=D[curCh].questions[qi];
+  const input=document.getElementById(`ti${qi}`);
+  const val=input.value.trim();
+  if(!val) return;
+  const correct=q.opts[q.ans];
+  const norm=s=>s.replace(/\s|\(.*?\)/g,'').toLowerCase();
+  const isOk=norm(val)===norm(correct)||correct.includes(val)||val.includes(correct.split('(')[0].trim());
+  answered[qi]=isOk?q.ans:-1;
+  input.disabled=true;
+  input.style.borderColor=isOk?'var(--correct)':'var(--wrong)';
+  input.style.background=isOk?'rgba(63,185,80,0.1)':'rgba(248,81,73,0.1)';
+  if(isOk){correctCount++;document.getElementById('correctCount').textContent=correctCount;}
+  else{
+    const d=document.createElement('div');
+    d.className='type-ans';
+    d.textContent='✅ 정답: '+correct;
+    input.parentNode.after(d);
+  }
+  document.getElementById(`exp${qi}`).classList.add('show');
+  updateProgress();
+}
+
+function updateProgress(){
+  const total=D[curCh].questions.length;
+  const done=Object.keys(answered).length;
+  document.getElementById('pbar').style.width=(done/total*100)+'%';
+  document.getElementById('plabel').textContent=`${done} / ${total}`;
+}
+
+function retry(){
+  answered={}; correctCount=0;
+  document.getElementById('correctCount').textContent='0';
+  render();
+}
+
+function showScore(){
+  const total=D[curCh].questions.length;
+  const pct=Math.round(correctCount/total*100);
+  const[emoji,msg]=pct>=90?['🎉','완벽합니다!']:pct>=70?['👍','잘했어요!']:pct>=50?['📚','조금 더 공부해봐요']:['💪','다시 도전해봐요!'];
+  document.getElementById('scrollArea').innerHTML=`
+    <div class="score-screen">
+      <div class="score-ring">
+        <div class="score-big">${correctCount}/${total}</div>
+        <div class="score-of">정답</div>
+      </div>
+      <div class="score-emoji">${emoji}</div>
+      <div class="score-title">${msg}</div>
+      <div class="score-sub">정답률 ${pct}% · ${curCh}</div>
+    </div>`;
+}
+
+buildTabs(); render();
+</script>
+</body>
+</html>
